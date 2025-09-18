@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Invoice - PO #{{ po.id }}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color:#222; margin: 0; padding: 16px; }
+    .invoice { max-width: 800px; margin: auto; border: 1px solid #eee; padding: 20px; }
+    header { display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; }
+    .company { font-weight:700; font-size:18px; }
+    .meta { text-align:right; font-size:12px; color:#555; }
+    table { width:100%; border-collapse:collapse; margin-top:16px; }
+    th, td { padding:8px; border:1px solid #e6e6e6; text-align:left; font-size:14px; }
+    th { background:#f8f8f8; }
+    tfoot td { font-weight:700; }
+    .right { text-align:right; }
+    .notes { margin-top:16px; font-size:13px; color:#333; }
+  </style>
+</head>
+<body>
+  <div class="invoice">
+    <header>
+      <div>
+        <div class="company">{{ company.name }}</div>
+        <div>{{ company.address }}</div>
+        <div>{{ company.phone }}</div>
+        <div>{{ company.email }}</div>
+      </div>
+      <div class="meta">
+        <div>Invoice (Purchase Order)</div>
+        <div>PO #: <strong>{{ po.id }}</strong></div>
+        <div>Date: {{ po.created_at.strftime("%Y-%m-%d %H:%M") }}</div>
+        <div>Status: {{ po.status }}</div>
+      </div>
+    </header>
+
+    <section>
+      <strong>Vendor</strong>
+      <div>{{ vendor.name }}</div>
+      <div>{{ vendor.email }}</div>
+      <div>{{ vendor.phone or "" }}</div>
+    </section>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:8%;">#</th>
+          <th>Product</th>
+          <th>Qty</th>
+          <th class="right">Unit Price</th>
+          <th class="right">Line Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for i, item in enumerate(items, start=1) %}
+        <tr>
+          <td>{{ i }}</td>
+          <td>{{ item.product_name or ("Product #" ~ item.product_id) }}</td>
+          <td>{{ item.qty }}</td>
+          <td class="right">{{ "%.2f"|format(item.unit_price) }}</td>
+          <td class="right">{{ "%.2f"|format(item.line_total) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="right">Subtotal</td>
+          <td class="right">{{ "%.2f"|format(totals.subtotal) }}</td>
+        </tr>
+        <tr>
+          <td colspan="4" class="right">Tax ({{ totals.tax_percent }}%)</td>
+          <td class="right">{{ "%.2f"|format(totals.tax) }}</td>
+        </tr>
+        <tr>
+          <td colspan="4" class="right">Total</td>
+          <td class="right">{{ "%.2f"|format(totals.total) }}</td>
+        </tr>
+      </tfoot>
+    </table>
+
+    {% if po.expected_date %}
+    <div class="notes"><strong>Expected delivery:</strong> {{ po.expected_date.strftime("%Y-%m-%d") }}</div>
+    {% endif %}
+
+    <div class="notes">
+      <strong>Notes:</strong>
+      <div>{{ po.notes or "" }}</div>
+    </div>
+  </div>
+</body>
+</html>

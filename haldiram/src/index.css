@@ -1,0 +1,191 @@
+:root {
+  --bg-light: #ffffff;
+  --bg-dark: #0f1720; /* dark page background */
+  --text-light: rgba(255,255,255,0.92);
+  --text-dark: #0f1720;
+  --muted: #6b7280;
+  --brand: #2563eb;
+  --brand-dark: #1e40af;
+
+  font-family: system-ui, Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* color scheme defaults: prefers dark if user has it */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    color: var(--text-light);
+    background-color: var(--bg-dark);
+  }
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    color: var(--text-dark);
+    background-color: var(--bg-light);
+  }
+}
+
+/* Page basics: normal document flow (not flex centering) */
+html, body, #root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* dark fallback if prefers dark */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: var(--bg-dark);
+    color: var(--text-light);
+  }
+}
+
+/* Utility container used across pages */
+.container {
+  width: 100%;
+  max-width: 1100px; /* center column width */
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+/* Header styling (full width) */
+header {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(15,23,36,0.95); /* dark header look */
+  color: var(--text-light);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+header a { color: inherit; text-decoration: none; }
+
+/* Hero / landing layout */
+.hero {
+  width: 100%;
+  padding: 4.5rem 0; /* large vertical spacing */
+  box-sizing: border-box;
+  background: transparent;
+}
+.hero .grid {
+  display: grid;
+  gap: 2.5rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+@media (min-width: 1024px) {
+  .hero .grid {
+    grid-template-columns: 1fr 420px;
+    gap: 3rem;
+  }
+}
+
+/* Typography */
+h1, .hero-title {
+  margin: 0;
+  font-weight: 800;
+  color: inherit;
+  font-size: 2.4rem;
+  line-height: 1.04;
+}
+@media (min-width: 768px) {
+  h1, .hero-title { font-size: 3rem; }
+}
+@media (min-width: 1200px) {
+  h1, .hero-title { font-size: 3.6rem; }
+}
+
+p { margin: 0.6rem 0 0; color: var(--muted); }
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn-primary {
+  background: var(--brand);
+  color: white;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.12);
+}
+.btn-primary:hover { transform: translateY(-2px); }
+.btn-ghost {
+  background: transparent;
+  color: var(--brand);
+  border: 1px solid rgba(37,99,235,0.12);
+}
+
+/* Card used for right preview + testimonial */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 30px rgba(12,12,12,0.06);
+  color: var(--text-dark);
+}
+@media (prefers-color-scheme: dark) {
+  .card {
+    background: rgba(255,255,255,0.03);
+    box-shadow: none;
+    border: 1px solid rgba(255,255,255,0.03);
+    color: var(--text-light);
+  }
+}
+
+/* Form fields */
+.input {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(15,23,36,0.06);
+  background: rgba(0,0,0,0.02);
+  box-sizing: border-box;
+  font-size: 0.95rem;
+}
+.input::placeholder { color: #9aa4b2; }
+
+/* Small utilities */
+.small-muted { color: var(--muted); font-size: .92rem; }
+.spacer { height: 1rem; }
+
+/* Footer / 404 spacing */
+.main-fallback {
+  padding: 5rem 1rem;
+  text-align: center;
+}
+
+/* Accessibility focus */
+:focus { outline: 3px solid rgba(37,99,235,0.14); outline-offset: 3px; }
+
+/* Fix for the header items alignment on narrow screens */
+.nav-right { display: flex; gap: 0.6rem; align-items: center; }
+
+/* ensure body content doesn't hide under sticky header */
+.site-content { padding-top: 0.5rem; }
+
+/* If you are also using Tailwind CDN, these classes are compatible — adapt as needed. */
