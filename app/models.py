@@ -1,5 +1,25 @@
-from typing import Optional
+
+from typing import List, Optional
 from datetime import datetime
+from sqlmodel import SQLModel, Field
+
+
+class Chat(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user1_id: int = Field(foreign_key="user.id")
+    user2_id: int = Field(foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Message(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    chat_id: int = Field(foreign_key="chat.id")
+    sender_id: int = Field(foreign_key="user.id")
+    content: Optional[str] = None
+    file_url: Optional[str] = None  # For image, video, pdf, etc.
+    file_type: Optional[str] = None  # 'image', 'video', 'pdf', etc.
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    read: bool = False
 from sqlmodel import SQLModel, Field, Relationship
 from sqlalchemy import Column, Text
 
@@ -18,11 +38,22 @@ class UserBase(SQLModel):
     role: str = Role.STAFF
     active: bool = True
 
+
+
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     password_hash: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    # --- Profile fields ---
+    address: Optional[str] = None
+    profile_pic: Optional[str] = None
+    aadhaar_number: Optional[str] = None
+    aadhaar_front: Optional[str] = None
+    aadhaar_back: Optional[str] = None
+
+    # --- New field ---
+    profile_update_count: int = Field(default=0)   # <-- count updates
 
 
 class VendorBase(SQLModel):
@@ -112,3 +143,21 @@ class Tag(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class Vehicle(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    driver_id: int = Field(foreign_key="user.id", index=True)
+    driver_mobile: Optional[str] = None
+    vehicle_number: Optional[str] = None   # truck/vehicle registration no.
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+    # NEW structured capacity fields
+    capacity_weight: Optional[float] = None   # numeric weight capacity (e.g. 10000)
+    capacity_unit: Optional[str] = Field(default="kg")  # unit: 'kg', 'ton', etc.
+
+    details: Optional[str] = None   # free-text / notes (kept for backward compatibility)
+    active: bool = Field(default=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = None
+

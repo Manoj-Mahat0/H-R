@@ -12,7 +12,7 @@ import { useToast } from "../../components/Toast";
  * - No <form> wrapper that can cause submit/reload.
  */
 
-const API_UPLOADS = "https://be.haldiram.globalinfosoft.co";
+const API_UPLOADS = "https://be.haldiram.globalinfosofts.com";
 
 export default function VendorOrders() {
   const toast = useToast();
@@ -305,7 +305,7 @@ export default function VendorOrders() {
 
             <div className="mt-4 text-sm text-gray-500">
               <p><strong>Tip:</strong> use the Qty input next to a product before adding.</p>
-              <p className="mt-2">Images served from backend at <code className="text-xs bg-gray-100 px-1 rounded">https://be.haldiram.globalinfosoft.co/uploads/...</code></p>
+              <p className="mt-2">Images served from backend at <code className="text-xs bg-gray-100 px-1 rounded">https://be.haldiram.globalinfosofts.com/uploads/...</code></p>
             </div>
           </div>
         </div>

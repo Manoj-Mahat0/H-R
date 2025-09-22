@@ -4,7 +4,7 @@ import VendorSidebar from "../../components/VendorSidebar";
 import { authFetch } from "../../lib/auth";
 import { useToast } from "../../components/Toast";
 
-const API_UPLOADS = "https://be.haldiram.globalinfosoft.co";
+const API_UPLOADS = "https://be.haldiram.globalinfosofts.com";
 
 function StatusBadge({ status }) {
   const map = {
@@ -43,6 +43,7 @@ export default function VendorMyOrders() {
 
   const [statusModal, setStatusModal] = useState({ open: false, data: null });
   const [busy, setBusy] = useState({}); // { orderId: { regen, check } }
+
 
   useEffect(() => {
     mounted.current = true;
@@ -105,6 +106,28 @@ export default function VendorMyOrders() {
       controller.abort();
     };
   }, [refreshKey, toast]);
+
+  // Auto check payment status for pending_payment orders
+  useEffect(() => {
+    async function autoCheckPaymentStatus() {
+      const pendingOrders = orders.filter((o) => o.status === "pending_payment");
+      for (const o of pendingOrders) {
+        try {
+          const res = await authFetch(`/vendor/orders/${o.id}/payment-status`, { method: "GET" });
+          if (res?.updated_status && res.updated_status !== o.status) {
+            setRefreshKey((k) => k + 1);
+            toast(`Order #${o.id} payment status updated: ${res.updated_status}`, "success");
+          }
+        } catch (err) {
+          // ignore errors for auto check
+        }
+      }
+    }
+    if (orders && orders.length > 0) {
+      autoCheckPaymentStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
 
   const totals = useMemo(() => {
     const count = orders.length;

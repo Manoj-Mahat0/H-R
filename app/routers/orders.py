@@ -1,6 +1,8 @@
 # app/routers/vendor.py
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
+
+from pydantic import BaseModel, conint
 from sqlmodel import select
 from ..database import get_session
 from ..models import PurchaseOrder, PurchaseItem, Product, AuditLog, User
@@ -461,3 +463,127 @@ def admin_get_order(po_id: int, session: Session = Depends(get_session), user: U
     if not po:
         raise HTTPException(status_code=404, detail="Purchase order not found")
     return _get_po_response(session, po)
+
+# paste into app/routers/orders.py (below admin endpoints)
+from fastapi import Body
+
+@router.patch("/admin/orders/{po_id}", dependencies=[Depends(require_roles(Role.MASTER, Role.ADMIN, Role.STAFF))])
+def admin_patch_order(
+    po_id: int,
+    payload: Optional[PurchaseOrderCreate] = None,
+    status: Optional[str] = Body(None, embed=True, description="Optional status string"),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Admin/Staff can patch PO: change status and/or replace items (if payload provided).
+    Mirrors behaviour of purchases.update_po but exposed under admin path.
+    """
+    po = session.get(PurchaseOrder, po_id)
+    if not po:
+        raise HTTPException(status_code=404, detail="Purchase order not found")
+
+    # Update status if provided (basic)
+    if status:
+        po.status = status
+
+    # If payload provided (items/expected_date), reuse purchases.update_po logic:
+    if payload and payload.items is not None:
+        # remove existing items
+        stmt = select(PurchaseItem).where(PurchaseItem.purchase_order_id == po.id)
+        for row in session.exec(stmt).all():
+            session.delete(row)
+        session.commit()
+        total = 0.0
+        for it in payload.items:
+            prod = session.get(Product, it.product_id)
+            if not prod:
+                session.rollback()
+                raise HTTPException(status_code=400, detail=f"Product id {it.product_id} not found")
+            pi = PurchaseItem(purchase_order_id=po.id, product_id=it.product_id, qty=it.qty, unit_price=it.unit_price)
+            total += float(it.qty) * float(it.unit_price)
+            session.add(pi)
+        po.total = total
+
+    if payload and payload.expected_date is not None:
+        po.expected_date = payload.expected_date
+
+    session.add(po)
+    session.add(AuditLog(user_id=user.id, action="update_po", meta=json.dumps({"po_id": po.id, "status": po.status})))
+    session.commit()
+    session.refresh(po)
+    return _get_po_response(session, po)
+
+
+
+
+class ItemQtyUpdate(BaseModel):
+    id: int
+    qty: conint(ge=0)
+
+class BatchQtyUpdate(BaseModel):
+    items: List[ItemQtyUpdate]
+
+# Allow vendor OR staff/admin/master
+@router.patch("/{vendor_id}/items/update-quantities", dependencies=[Depends(require_roles(Role.VENDOR, Role.STAFF, Role.ADMIN, Role.MASTER))])
+def vendor_or_staff_update_item_quantities(
+    vendor_id: int,
+    payload: BatchQtyUpdate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    # If caller is vendor, enforce they match vendor_id
+    if user.role == Role.VENDOR and int(user.id) != int(vendor_id):
+        raise HTTPException(status_code=403, detail="Operation not permitted")
+
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="No items provided")
+
+    # fetch items and validate they belong to vendor's POs
+    item_ids = [it.id for it in payload.items]
+    stmt = select(PurchaseItem).where(PurchaseItem.id.in_(item_ids))
+    items = session.exec(stmt).all()
+    if len(items) != len(item_ids):
+        found_ids = {it.id for it in items}
+        missing = [iid for iid in item_ids if iid not in found_ids]
+        raise HTTPException(status_code=400, detail=f"PurchaseItem ids not found: {missing}")
+
+    affected_po_ids = set()
+    updated = []
+    for upd in payload.items:
+        pi = next(x for x in items if x.id == upd.id)
+        po = session.get(PurchaseOrder, pi.purchase_order_id)
+        if not po:
+            raise HTTPException(status_code=400, detail=f"PurchaseOrder {pi.purchase_order_id} not found")
+        # vendor callers already enforced match; staff/admin allowed
+        if user.role == Role.VENDOR and int(po.vendor_id) != int(vendor_id):
+            raise HTTPException(status_code=403, detail="Operation not permitted on this PO")
+
+        # business rule: vendors can only edit in certain statuses; staff/admin can edit more
+        if user.role == Role.VENDOR:
+            if po.status not in ("placed", "pending_payment"):
+                raise HTTPException(status_code=400, detail=f"Cannot edit items when PO status is '{po.status}'")
+        # STAFF/ADMIN allowed regardless (or add your own restriction)
+
+        old_qty = int(pi.qty or 0)
+        if old_qty != int(upd.qty):
+            pi.qty = int(upd.qty)
+            session.add(pi)
+            meta = {"po_id": pi.purchase_order_id, "purchase_item_id": pi.id, "old_qty": old_qty, "new_qty": upd.qty, "by": user.id}
+            session.add(AuditLog(user_id=user.id, action="update_item_qty", meta=json.dumps(meta)))
+            updated.append({"item_id": pi.id, "old_qty": old_qty, "new_qty": upd.qty})
+
+        affected_po_ids.add(pi.purchase_order_id)
+
+    # recalc totals for affected POs
+    for po_id in affected_po_ids:
+        stmt2 = select(PurchaseItem).where(PurchaseItem.purchase_order_id == po_id)
+        po_items = session.exec(stmt2).all()
+        total = sum((float(it.unit_price or 0.0) * float(it.qty or 0)) for it in po_items)
+        po = session.get(PurchaseOrder, po_id)
+        po.total = total
+        session.add(po)
+        session.add(AuditLog(user_id=user.id, action="recalc_total", meta=json.dumps({"po_id":po_id,"new_total":total,"by":user.id})))
+
+    session.commit()
+    return {"updated": updated, "message": "Quantities updated"}

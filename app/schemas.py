@@ -19,9 +19,22 @@ class MeOut(BaseModel):
     phone: Optional[str] = None
     role: str
     active: bool
+    address: Optional[str] = None
+    profile_pic: Optional[str] = None
+    aadhaar_number: Optional[str] = None
+    aadhaar_front: Optional[str] = None
+    aadhaar_back: Optional[str] = None
+    profile_update_count: int   # <-- new
 
     class Config:
         orm_mode = True
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    aadhaar_number: Optional[str] = None
 
 class ChangePasswordIn(BaseModel):
     old_password: str
@@ -133,3 +146,34 @@ class PurchaseOrderRead(BaseModel):
     expected_date: Optional[datetime] = None
     created_at: datetime
     items: List[PurchaseItemRead]
+
+
+
+class VehicleCreate(BaseModel):
+    driver_mobile: Optional[str] = None
+    vehicle_number: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    capacity_weight: Optional[float] = None
+    capacity_unit: Optional[str] = "kg"
+    details: Optional[str] = None
+
+class VehicleRead(VehicleCreate):
+    id: int
+    driver_id: int
+    active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+    class Config:
+        orm_mode = True
+
+class VehicleUpdate(BaseModel):
+    driver_mobile: Optional[str] = None
+    vehicle_number: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    capacity_weight: Optional[float] = None
+    capacity_unit: Optional[str] = None
+    details: Optional[str] = None
+    active: Optional[bool] = None

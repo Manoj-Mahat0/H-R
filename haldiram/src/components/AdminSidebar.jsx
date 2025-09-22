@@ -46,6 +46,7 @@ export default function AdminSidebar() {
     { to: "/admin/customers", label: "Customers", icon: FiUsers },
     { to: "/admin/reports", label: "Reports", icon: FiBarChart2 },
     { to: "/admin/settings", label: "Settings", icon: FiSettings },
+    { to: "/admin/profile", label: "Profile", icon: FiUsers },
   ];
 
   return (

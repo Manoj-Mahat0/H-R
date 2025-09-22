@@ -108,7 +108,7 @@ def list_my_orders(session: Session = Depends(get_session), user: User = Depends
 
 
 @router.get("/", response_model=List[PurchaseOrderRead])
-def list_orders(status: Optional[str] = Query(None), session: Session = Depends(get_session), user: User = Depends(require_roles(Role.STAFF, Role.ADMIN, Role.MASTER))):
+def list_orders(status: Optional[str] = Query(None), session: Session = Depends(get_session), user: User = Depends(require_roles(Role.STAFF, Role.ADMIN, Role.MASTER, Role.ACCOUNTANT))):
     stmt = select(PurchaseOrder)
     if status:
         stmt = stmt.where(PurchaseOrder.status == status)

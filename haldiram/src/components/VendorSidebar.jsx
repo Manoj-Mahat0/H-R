@@ -46,12 +46,13 @@ export default function VendorSidebar() {
   }
 
   const nav = [
-    { to: "/vendor/dashboard", label: "Overview", icon: FiBarChart2 },
-    { to: "/vendor/products", label: "Products", icon: FiPackage },
-    { to: "/vendor/orders", label: "Orders", icon: FiShoppingBag },
-    { to: "/vendor/my-orders", label: "My Orders", icon: FiBarChart2 },
-    { to: "/vendor/inventory", label: "Inventory", icon: FiDatabase },
-    { to: "/vendor/profile", label: "Profile", icon: FiUser },
+  { to: "/vendor/dashboard", label: "Overview", icon: FiBarChart2 },
+  { to: "/vendor/products", label: "Products", icon: FiPackage },
+  { to: "/vendor/orders", label: "Orders", icon: FiShoppingBag },
+  { to: "/vendor/my-orders", label: "My Orders", icon: FiBarChart2 },
+  { to: "/vendor/inventory", label: "Inventory", icon: FiDatabase },
+  { to: "/vendor/profile", label: "Profile", icon: FiUser },
+  { to: "/chat", label: "Chat", icon: FiUser },
   ];
 
   return (

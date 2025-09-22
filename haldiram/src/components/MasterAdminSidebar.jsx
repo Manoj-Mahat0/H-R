@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   FiGrid, FiBox, FiList, FiTag, FiShoppingCart, FiUsers,
-  FiBarChart2, FiSettings, FiLogOut, FiChevronLeft
+  FiBarChart2, FiSettings, FiLogOut, FiChevronLeft, FiShoppingBag
 } from "react-icons/fi";
 
 export default function MasterAdminSidebar() {
@@ -39,8 +39,9 @@ export default function MasterAdminSidebar() {
     { to: "/master-admin/categories", label: "Categories", icon: FiList },
     { to: "/master-admin/tags", label: "Tags", icon: FiTag },
     { to: "/master-admin/stock", label: "Stock", icon: FiBox },
-    { to: "/master-admin/orders", label: "Orders", icon: FiShoppingCart, badge: "3" },
+      { to: "/master-admin/orders", label: "Orders", icon: FiShoppingBag },
     { to: "/master-admin/customers", label: "Customers", icon: FiUsers },
+    {to: "/master-admin/profile", label: "Profile", icon: FiUsers}
   ];
 
   const quick = [

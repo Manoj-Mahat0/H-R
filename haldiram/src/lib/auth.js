@@ -1,6 +1,6 @@
 // src/lib/auth.js
-const API_BASE = "https://be.haldiram.globalinfosoft.co/api";
-
+// const API_BASE = "https://be.haldiram.globalinfosofts.com/api";
+const API_BASE = "https://be.haldiram.globalinfosofts.com/api";
 export function getToken() {
   return localStorage.getItem("access_token");
 }

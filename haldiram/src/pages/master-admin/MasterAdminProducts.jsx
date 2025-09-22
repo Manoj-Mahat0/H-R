@@ -327,7 +327,7 @@ export default function MasterAdminProducts() {
   async function handleSave(e) {
     e.preventDefault();
     if (!form.name.trim() || !form.sku.trim()) {
-      toast("Name and SKU are required", "error");
+      toast("Name and Product ID are required", "error");
       return;
     }
     setSaving(true);
@@ -517,13 +517,13 @@ export default function MasterAdminProducts() {
                 <div className="px-6 py-4 overflow-auto" style={{ maxHeight: "70vh" }}>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm text-gray-600">SKU</label>
+                      <label className="text-sm text-gray-600">Product ID</label>
                       <input
                         ref={modalFormRef}
                         value={form.sku}
                         onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
                         className="mt-1 w-full px-3 py-2 border rounded"
-                        placeholder="SKU"
+                        placeholder="Product ID"
                         required
                       />
                     </div>

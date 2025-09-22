@@ -239,3 +239,127 @@ def stock_summary(session: Session = Depends(get_session), user: User = Depends(
         if reorder and r.quantity <= reorder:
             low_stock.append({"product_id": r.product_id, "product_name": getattr(prod, "name", None), "quantity": r.quantity, "reorder_level": reorder})
     return {"total_products": total_products, "low_stock": low_stock}
+
+
+# --- START: threshold/status endpoints (paste into app/routers/stock.py) ---
+
+from fastapi import Path
+from typing import Dict
+
+# GET status for a single product: returns UNDER / OK / OVER + details
+@router.get("/product/{product_id}/status")
+def product_threshold_status(
+    product_id: int = Path(..., description="Product ID to check"),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    # ensure stock level exists
+    sl_stmt = select(StockLevel).where(StockLevel.product_id == product_id)
+    sl = session.exec(sl_stmt).one_or_none()
+    if not sl:
+        raise HTTPException(status_code=404, detail="Stock level not found for product")
+
+    prod = session.get(Product, product_id)
+    if not prod:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # read thresholds (fallback to 0 if None)
+    min_q = int(getattr(prod, "min_quantity", 0) or 0)
+    max_q = int(getattr(prod, "max_quantity", 0) or 0)
+    qty = int(sl.quantity or 0)
+
+    status = "OK"
+    note = None
+    if min_q and qty < min_q:
+        status = "UNDER"
+        note = f"Below min by {min_q - qty}"
+    elif max_q and qty > max_q:
+        status = "OVER"
+        note = f"Above max by {qty - max_q}"
+
+    return {
+        "product_id": product_id,
+        "sku": getattr(prod, "sku", None),
+        "product_name": getattr(prod, "name", None),
+        "quantity": qty,
+        "min_quantity": min_q,
+        "max_quantity": max_q,
+        "status": status,
+        "note": note,
+    }
+
+
+# GET all products that are out-of-range (under or over)
+@router.get("/alerts/out_of_range")
+def list_out_of_range_products(
+    limit: int = Query(200, ge=1, le=2000),
+    skip: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+):
+    """
+    Returns list of products where:
+      - quantity < min_quantity (UNDER)
+      - OR quantity > max_quantity (OVER)
+    If min/max are 0 or not set, they are ignored for that comparison.
+    """
+    # load stocklevels with pagination
+    stmt = select(StockLevel).order_by(StockLevel.product_id)
+    rows = session.exec(stmt.offset(skip).limit(limit)).all()
+
+    out = []
+    for r in rows:
+        prod = session.get(Product, r.product_id)
+        if not prod:
+            continue
+        min_q = int(getattr(prod, "min_quantity", 0) or 0)
+        max_q = int(getattr(prod, "max_quantity", 0) or 0)
+        qty = int(r.quantity or 0)
+
+        if min_q and qty < min_q:
+            out.append({
+                "product_id": r.product_id,
+                "sku": getattr(prod, "sku", None),
+                "product_name": getattr(prod, "name", None),
+                "quantity": qty,
+                "min_quantity": min_q,
+                "max_quantity": max_q,
+                "status": "UNDER",
+                "delta": min_q - qty
+            })
+        elif max_q and qty > max_q:
+            out.append({
+                "product_id": r.product_id,
+                "sku": getattr(prod, "sku", None),
+                "product_name": getattr(prod, "name", None),
+                "quantity": qty,
+                "min_quantity": min_q,
+                "max_quantity": max_q,
+                "status": "OVER",
+                "delta": qty - max_q
+            })
+
+    return {"count": len(out), "results": out}
+
+
+# small helper endpoint: summary counts
+@router.get("/alerts/summary")
+def out_of_range_summary(session: Session = Depends(get_session), user: User = Depends(get_current_user)):
+    stmt = select(StockLevel)
+    rows = session.exec(stmt).all()
+    under = 0
+    over = 0
+    for r in rows:
+        prod = session.get(Product, r.product_id)
+        if not prod:
+            continue
+        min_q = int(getattr(prod, "min_quantity", 0) or 0)
+        max_q = int(getattr(prod, "max_quantity", 0) or 0)
+        qty = int(r.quantity or 0)
+        if min_q and qty < min_q:
+            under += 1
+        if max_q and qty > max_q:
+            over += 1
+    return {"total_products_checked": len(rows), "under_count": under, "over_count": over}
+
+# --- END: threshold/status endpoints ---

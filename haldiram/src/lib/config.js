@@ -2,7 +2,8 @@
 
 // API host (backend server URL)
 // You can override this in .env file using: VITE_API_HOST
-export const API_HOST = "https://be.haldiram.globalinfosoft.co";
+// export const API_HOST = "https://be.haldiram.globalinfosofts.com";
+export const API_HOST = "https://be.haldiram.globalinfosofts.com";
 
 // Base path for your API
 export const API_BASE = "/api";
