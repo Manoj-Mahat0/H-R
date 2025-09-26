@@ -73,6 +73,7 @@ class ProductCreate(BaseModel):
     min_quantity: Optional[int] = 0
     max_quantity: Optional[int] = 0
     price: float = 0.0
+    gst_rate: float = 0.0   # <-- new field
     category: Optional[str] = None
     tags: Optional[List[str]] = None
     image_url: Optional[str] = None   # frontend can pass an image URL, or upload via image endpoint
@@ -84,11 +85,7 @@ class ProductRead(ProductCreate):
     class Config:
         orm_mode = True
 
-class ProductRead(ProductCreate):
-    id: int
 
-    class Config:
-        orm_mode = True
 
 class VendorCreate(BaseModel):
     name: str
@@ -177,3 +174,107 @@ class VehicleUpdate(BaseModel):
     capacity_unit: Optional[str] = None
     details: Optional[str] = None
     active: Optional[bool] = None
+
+class VendorLimitCreate(BaseModel):
+    vendor_id: int
+    limit_amount: float = 0.0
+    limit_boxes: int = 0
+    month: Optional[str] = None   # "YYYY-MM"
+    note: Optional[str] = None
+
+class VendorLimitRead(BaseModel):
+    id: int
+    vendor_id: int
+    limit_amount: float
+    limit_boxes: int
+    month: Optional[str] = None
+    note: Optional[str] = None
+    created_by: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        orm_mode = True
+
+
+
+class PurchaseItemHistoryRead(BaseModel):
+    id: int
+    purchase_item_id: int
+    purchase_order_id: Optional[int]
+    old_qty: int
+    new_qty: int
+    changed_by: Optional[int]
+    reason: Optional[str]
+    changed_at: datetime
+
+    class Config:
+        orm_mode = True
+
+
+class StockBatchCreate(BaseModel):
+    product_id: int
+    batch_no: Optional[str] = None
+    quantity: int
+    unit: Optional[str] = "pcs"
+    expire_date: Optional[datetime] = None
+    notes: Optional[str] = None
+
+class StockBatchRead(StockBatchCreate):
+    id: int
+    added_at: datetime
+    created_by: Optional[int]
+    active: bool
+
+    class Config:
+        orm_mode = True
+
+class StockConsumeIn(BaseModel):
+    product_id: int
+    qty: int   # how many pieces to consume
+    method: Optional[str] = "fifo"  # fifo | lifo | specific_batch
+    batch_id: Optional[int] = None  # used when method == 'specific_batch'
+    reason: Optional[str] = None
+
+
+class OrderItemCreate(BaseModel):
+    product_id: int
+    qty: int
+    unit_price: Optional[float] = 0.0
+
+class OrderCreate(BaseModel):
+    items: List[OrderItemCreate]
+    shipping_address: Optional[str] = None
+    notes: Optional[str] = None
+
+class OrderItemRead(BaseModel):
+    id: int
+    product_id: int
+    original_qty: int
+    final_qty: int
+    unit_price: float
+    subtotal: float
+    notes: Optional[str] = None
+
+    class Config:
+        orm_mode = True
+
+class OrderRead(BaseModel):
+    id: int
+    customer_id: int
+    created_at: datetime
+    status: str
+    total_amount: float
+    items: List[OrderItemRead]
+    shipping_address: Optional[str]
+    notes: Optional[str]
+
+    class Config:
+        orm_mode = True
+
+class OrderUpdateItemsIn(BaseModel):
+    items: List[OrderItemCreate]  # admin can pass new list: add/remove/change qty
+    reason: Optional[str] = None
+
+class ConsumeAllocationResult(BaseModel):
+    batch_id: int
+    qty: int

@@ -524,7 +524,6 @@ class ItemQtyUpdate(BaseModel):
 class BatchQtyUpdate(BaseModel):
     items: List[ItemQtyUpdate]
 
-# Allow vendor OR staff/admin/master
 @router.patch("/{vendor_id}/items/update-quantities", dependencies=[Depends(require_roles(Role.VENDOR, Role.STAFF, Role.ADMIN, Role.MASTER))])
 def vendor_or_staff_update_item_quantities(
     vendor_id: int,
@@ -566,12 +565,31 @@ def vendor_or_staff_update_item_quantities(
         # STAFF/ADMIN allowed regardless (or add your own restriction)
 
         old_qty = int(pi.qty or 0)
-        if old_qty != int(upd.qty):
-            pi.qty = int(upd.qty)
+        new_qty = int(upd.qty)
+        if old_qty != new_qty:
+            # 1) Update the purchase item
+            pi.qty = new_qty
             session.add(pi)
-            meta = {"po_id": pi.purchase_order_id, "purchase_item_id": pi.id, "old_qty": old_qty, "new_qty": upd.qty, "by": user.id}
+
+            # 2) Create a history row
+            try:
+                history = PurchaseItemHistory(
+                    purchase_item_id=pi.id,
+                    purchase_order_id=pi.purchase_order_id,
+                    old_qty=old_qty,
+                    new_qty=new_qty,
+                    changed_by=user.id,
+                    reason=None  # optional: you can pass reason via payload if desired
+                )
+                session.add(history)
+            except Exception:
+                # don't block update if history insert fails, but log it into AuditLog
+                session.add(AuditLog(user_id=user.id, action="history_insert_failed", meta=json.dumps({"purchase_item_id": pi.id})))
+
+            # 3) AuditLog (existing)
+            meta = {"po_id": pi.purchase_order_id, "purchase_item_id": pi.id, "old_qty": old_qty, "new_qty": new_qty, "by": user.id}
             session.add(AuditLog(user_id=user.id, action="update_item_qty", meta=json.dumps(meta)))
-            updated.append({"item_id": pi.id, "old_qty": old_qty, "new_qty": upd.qty})
+            updated.append({"item_id": pi.id, "old_qty": old_qty, "new_qty": new_qty})
 
         affected_po_ids.add(pi.purchase_order_id)
 
@@ -587,3 +605,6 @@ def vendor_or_staff_update_item_quantities(
 
     session.commit()
     return {"updated": updated, "message": "Quantities updated"}
+
+
+

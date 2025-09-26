@@ -2,7 +2,19 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { FiGrid, FiBox, FiTag, FiShoppingCart, FiBarChart2, FiUsers, FiSettings, FiLogOut, FiChevronLeft, FiList } from "react-icons/fi";
+import Logo from "../assets/logo.png";
+import {
+  FiGrid,
+  FiBox,
+  FiTag,
+  FiShoppingCart,
+  FiBarChart2,
+  FiUsers,
+  FiSettings,
+  FiLogOut,
+  FiChevronLeft,
+  FiList,
+} from "react-icons/fi";
 
 /**
  * AdminSidebar
@@ -32,9 +44,24 @@ export default function AdminSidebar() {
     });
   }
 
-  function handleLogout() {
-    logout();
-    navigate("/login");
+  async function handleLogout() {
+    try {
+      if (logout && typeof logout === "function") {
+        await logout();
+      } else {
+        try {
+          localStorage.removeItem("token");
+        } catch {}
+      }
+    } catch (err) {
+      try {
+        localStorage.removeItem("token");
+      } catch {}
+    } finally {
+      try {
+        navigate("/login");
+      } catch {}
+    }
   }
 
   const nav = [
@@ -106,9 +133,11 @@ function SidebarInner({ collapsed, onToggleCollapse, user, onLogout, locationPat
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className={`flex items-center gap-3 px-4 py-4 border-b border-gray-100 ${compact ? "justify-center" : ""}`}>
-        <div className="bg-gradient-to-br from-green-600 to-teal-600 text-white rounded-lg p-2">
-          <FiGrid className="w-5 h-5" />
-        </div>
+        <Link to="/" className="flex items-center gap-3">
+          <div className={`rounded-lg p-2 ${compact ? "bg-transparent" : "bg-gradient-to-br from-green-600 to-teal-600"}`}>
+            <img src={Logo} alt="Sri Gopal Traders logo" className={`${compact ? "h-6 w-6" : "h-6 w-auto"}`} loading="lazy" />
+          </div>
+        </Link>
 
         {!compact && (
           <div>

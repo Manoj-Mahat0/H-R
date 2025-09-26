@@ -68,6 +68,7 @@ def create_product(
     min_quantity: int = Form(0),
     max_quantity: int = Form(0),
     price: float = Form(0.0),
+    gst_rate: float = Form(0.0),   # ✅ add here
     description: str | None = Form(None),
     category_ids: str | None = Form("[]"),  # JSON string like "[1,2]"
     tag_ids: str | None = Form("[]"),  # JSON string like "[3,4]"
@@ -122,6 +123,7 @@ def create_product(
         min_quantity=min_quantity,
         max_quantity=max_quantity,
         price=price,
+        gst_rate=gst_rate,   # ✅ set here
         description=description,
         image_path=image_url,
         active=True,
@@ -151,6 +153,7 @@ def create_product(
         "min_quantity": prod.min_quantity,
         "max_quantity": prod.max_quantity,
         "price": prod.price,
+        "gst_rate": prod.gst_rate,    # ✅ add
         "description": prod.description,
         "image_url": prod.image_path,
         "category": category_value,
@@ -178,6 +181,7 @@ def list_products(session: Session = Depends(get_session)):
                 "min_quantity": p.min_quantity,
                 "max_quantity": p.max_quantity,
                 "price": p.price,
+                "gst_rate": p.gst_rate,    # ✅ add
                 "description": p.description,
                 "image_url": p.image_path,
                 "category": category_value,
@@ -197,6 +201,7 @@ def update_product(
     min_quantity: Optional[int] = Form(None),
     max_quantity: Optional[int] = Form(None),
     price: Optional[float] = Form(None),
+    gst_rate: Optional[float] = Form(None),
     description: Optional[str] = Form(None),
     category_ids: Optional[str] = Form(None),  # JSON string or None
     tag_ids: Optional[str] = Form(None),  # JSON string or None
@@ -225,6 +230,8 @@ def update_product(
         prod.max_quantity = max_quantity
     if price is not None:
         prod.price = price
+    if gst_rate is not None:
+        prod.gst_rate = gst_rate
     if description is not None:
         prod.description = description
 
@@ -281,6 +288,7 @@ def update_product(
         "min_quantity": prod.min_quantity,
         "max_quantity": prod.max_quantity,
         "price": prod.price,
+        "gst_rate": prod.gst_rate,    # ✅ add
         "description": prod.description,
         "image_url": prod.image_path,
         "category": category_value,

@@ -39,6 +39,13 @@ import AccountantProfile from "./pages/accountant/Profile";
 
 import DriverDashboard from "./pages/driver/Dashboard";
 import DriverVehicles from "./pages/driver/Vehicles";
+import MasterVicles from "./pages/master-admin/MasterVehicles";
+import MasterAddVicles from "./pages/master-admin/MasterAddVehicles";
+import MasterVendorLimits from "./pages/master-admin/CustomerLimits";
+import MasterOrdersMovement from "./pages/master-admin/MasterOrdersMovement";
+import MasterOrdersMovementDetails from "./pages/master-admin/MasterOrdersMovementDetails";
+import EditOrderItems from "./pages/master-admin/EditOrderItems";
+import NotFound from "./pages/NotFound";
 
 export default function App() {
   const location = useLocation();
@@ -85,21 +92,18 @@ export default function App() {
         <Route path="/accountant/profile" element={<ProtectedRoute><AccountantProfile /> </ProtectedRoute>} />
         <Route path="/driver/dashboard" element={<ProtectedRoute><DriverDashboard /> </ProtectedRoute>} />
           <Route path="/driver/vehicles" element={<ProtectedRoute><DriverVehicles /> </ProtectedRoute>} />
+          <Route path="/master-admin/vehicles" element={<ProtectedRoute><MasterVicles /> </ProtectedRoute>} />
+                    <Route path="/master-admin/vehicles/add" element={<ProtectedRoute><MasterAddVicles /> </ProtectedRoute>} />
 
-
+          <Route path="/master-admin/customers/add-limits" element={<ProtectedRoute><MasterVendorLimits /> </ProtectedRoute>} />
+          <Route path="/master-admin/orders/movement" element={<ProtectedRoute><MasterOrdersMovement /> </ProtectedRoute>} />
+          <Route path="/master-admin/orders/movement/:id" element={<ProtectedRoute><MasterOrdersMovementDetails /> </ProtectedRoute>} />
+          <Route path="/master-admin/orders/:id/edit-items" element={<ProtectedRoute><EditOrderItems /> </ProtectedRoute>} />
                 <Route path="/accountant/transactions" element={<ProtectedRoute><AccountantTransactions /> </ProtectedRoute>} />
 
   {/* <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} /> Chat route removed, floating chat is always available */}
-        <Route
-          path="*"
-          element={
-            <div className="text-center py-20">
-              <h2 className="text-2xl font-semibold">
-                404 — Page not found
-              </h2>
-            </div>
-          }
-        />
+          <Route path="*" element={<NotFound />} />
+
       </Routes>
     </>
   );

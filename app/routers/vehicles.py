@@ -11,7 +11,7 @@ router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
 
 
 # Driver creates a vehicle (driver_id taken from token)
-@router.post("/", response_model=VehicleRead, dependencies=[Depends(require_roles(Role.DRIVER))])
+@router.post("/", response_model=VehicleRead, dependencies=[Depends(require_roles(Role.DRIVER, Role.ADMIN, Role.MASTER))])
 def create_vehicle(payload: VehicleCreate, session: Session = Depends(get_session), user: User = Depends(get_current_user)):
     v = Vehicle(
         driver_id=user.id,

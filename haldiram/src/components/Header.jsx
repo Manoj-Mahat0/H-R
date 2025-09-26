@@ -33,7 +33,7 @@ export default function Header() {
             Home
           </Link>
 
-          <Link
+          {/* <Link
             to="/products"
             className={`px-3 py-2 rounded-md text-sm font-medium ${
               loc.pathname === "/products"
@@ -53,9 +53,9 @@ export default function Header() {
             }`}
           >
             About
-          </Link>
+          </Link> */}
 
-          <Link
+          {/* <Link
             to="/login"
             className={`px-3 py-2 rounded-md text-sm font-medium ${
               loc.pathname === "/login"
@@ -64,13 +64,13 @@ export default function Header() {
             }`}
           >
             Login
-          </Link>
+          </Link> */}
 
           <Link
-            to="/signup"
+            to="/login"
             className="px-4 py-2 rounded-full text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700"
           >
-            Sign up
+            Login
           </Link>
         </nav>
 

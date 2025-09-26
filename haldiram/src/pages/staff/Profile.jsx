@@ -7,7 +7,7 @@ import { FiCamera, FiTrash2, FiCheck, FiX, FiUpload, FiEye, FiRotateCw, FiRefres
 
 
 
-const API_UPLOADS = "https://be.haldiram.globalinfosofts.com";
+const API_UPLOADS = "http://127.0.0.1:8000";
 const OUTPUT_SIZE = 800; // final cropped image size
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 

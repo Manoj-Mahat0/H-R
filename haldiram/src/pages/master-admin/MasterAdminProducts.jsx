@@ -5,9 +5,79 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/Toast";
 import { API_BASE, API_HOST } from "../../lib/config";
 import { getToken } from "../../lib/auth";
-import { FiBox, FiEye, FiEyeOff, FiEdit3, FiTrash2, FiSearch, FiPlus, FiImage } from "react-icons/fi";
+import {
+  FiBox,
+  FiEye,
+  FiEyeOff,
+  FiEdit3,
+  FiTrash2,
+  FiSearch,
+  FiPlus,
+  FiImage,
+  FiList,
+  FiRefreshCw,
+  FiX,
+} from "react-icons/fi";
 
-/* ---------- MultiSelectDropdown (same as before) ---------- */
+/* ---------- helpers ---------- */
+function formatIN(dateStr) {
+  if (!dateStr) return "-";
+  try {
+    const d = new Date(dateStr);
+    return d.toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+// ---------- expiry helpers ----------
+function daysBetween(dateA, dateB = new Date()) {
+  // return whole days difference (dateA - dateB)
+  try {
+    const a = new Date(dateA);
+    const b = new Date(dateB);
+    // compute at midnight UTC to avoid partial-day issues across timezones
+    const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+  } catch {
+    return null;
+  }
+}
+
+function expiryClassesForDays(daysLeft) {
+  // daysLeft: integer (can be negative if expired), returns object with classes + label
+  if (daysLeft == null) {
+    return { bar: "bg-gray-300", bg: "bg-gray-50", text: "text-gray-600", label: "Unknown" };
+  }
+  if (daysLeft < 0) {
+    // already expired
+    return { bar: "bg-red-600", bg: "bg-red-50", text: "text-red-700", label: "Expired" };
+  }
+  if (daysLeft <= 7) {
+    return { bar: "bg-red-400", bg: "bg-red-50", text: "text-red-700", label: `Expiring in ${daysLeft}d` };
+  }
+  if (daysLeft <= 30) {
+    return { bar: "bg-orange-400", bg: "bg-orange-50", text: "text-orange-700", label: `Expiring in ${daysLeft}d` };
+  }
+  if (daysLeft <= 90) {
+    return { bar: "bg-amber-400", bg: "bg-amber-50", text: "text-amber-700", label: `Expiring in ${daysLeft}d` };
+  }
+  if (daysLeft <= 180) {
+    return { bar: "bg-blue-400", bg: "bg-blue-50", text: "text-blue-700", label: `Expiring in ${Math.ceil(daysLeft / 30)}m` };
+  }
+  return { bar: "bg-emerald-400", bg: "bg-emerald-50", text: "text-emerald-700", label: `Good (${Math.ceil(daysLeft / 30)}m)` };
+}
+
+/* ---------- MultiSelectDropdown ---------- */
 function MultiSelectDropdown({ options = [], selected = [], onChange, placeholder = "Select" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -78,9 +148,99 @@ function MultiSelectDropdown({ options = [], selected = [], onChange, placeholde
   );
 }
 
-/* ---------- ProductRow: Eye icon used as active/inactive toggle; removed standalone View button ---------- */
-function ProductRow({ p, onEdit, onDelete, onToggleActive, busyToggleId }) {
+/* ---------- ProductRow with Active Toggle (updated for clearer stock-age colors) ---------- */
+function ProductRow({
+  p,
+  onEdit,
+  onDelete,
+  onToggleActive,
+  busyToggleId,
+  onOpenBatches,
+  tagsById,
+  latestBatchTsByProductId,
+}) {
   const isBusy = busyToggleId === p.id;
+  const isActive = Boolean(p.active);
+
+  // Determine latest timestamp for this product (from batches map or fallback to created_at)
+  const latestTs =
+    latestBatchTsByProductId?.[Number(p.id)] ??
+    (p.created_at ? new Date(p.created_at).getTime() : null);
+
+  // monthsOld (decimal)
+  const monthsOld = (() => {
+    if (!latestTs || !Number.isFinite(latestTs)) return null;
+    const ms = Date.now() - latestTs;
+    const months = ms / (1000 * 60 * 60 * 24 * 30);
+    return months;
+  })();
+
+  // Map monthsOld to a set of utility classes for bg / text / border
+  const ageClasses = (() => {
+    // default: unknown
+    if (monthsOld == null) {
+      return {
+        bg: "bg-gray-50",
+        text: "text-gray-600",
+        border: "border-gray-200",
+        bar: "bg-gray-300",
+        label: "Unknown",
+      };
+    }
+    if (monthsOld < 3) {
+      return {
+        bg: "bg-emerald-50",
+        text: "text-emerald-700",
+        border: "border-emerald-100",
+        bar: "bg-emerald-400",
+        label: "<3m",
+      };
+    }
+    if (monthsOld < 6) {
+      return {
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-100",
+        bar: "bg-blue-400",
+        label: "<6m",
+      };
+    }
+    if (monthsOld < 9) {
+      return {
+        bg: "bg-amber-50",
+        text: "text-amber-700",
+        border: "border-amber-100",
+        bar: "bg-amber-400",
+        label: "<9m",
+      };
+    }
+    if (monthsOld < 12) {
+      return {
+        bg: "bg-orange-50",
+        text: "text-orange-700",
+        border: "border-orange-100",
+        bar: "bg-orange-400",
+        label: "<12m",
+      };
+    }
+    return {
+      bg: "bg-red-50",
+      text: "text-red-700",
+      border: "border-red-100",
+      bar: "bg-red-400",
+      label: "≥12m",
+    };
+  })();
+
+  const stockValue = p.stocklevel_quantity ?? p.stock_quantity ?? 0;
+
+  const productTagIds = Array.isArray(p.tag_ids)
+    ? p.tag_ids
+    : Array.isArray(p.tags)
+    ? p.tags.map((t) => (typeof t === "object" ? t.id : t))
+    : [];
+  const productTagNames = (productTagIds || []).map((id) => tagsById?.[id]).filter(Boolean);
+
   return (
     <tr>
       <td className="px-4 py-4 whitespace-nowrap align-top">
@@ -100,32 +260,65 @@ function ProductRow({ p, onEdit, onDelete, onToggleActive, busyToggleId }) {
       </td>
 
       <td className="px-4 py-4 align-top">
-        <div className="font-medium text-gray-900">{p.name}</div>
+        <div className="flex items-center gap-2">
+          <div className="font-medium text-gray-900">{p.name}</div>
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded-full border ${isActive ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-gray-50 text-gray-600 border-gray-200"}`}
+          >
+            {isActive ? "Active" : "Inactive"}
+          </span>
+        </div>
         <div className="text-xs text-gray-500 mt-1">{p.sku}</div>
+        {productTagNames.length > 0 && (
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {productTagNames.slice(0, 3).map((name) => (
+              <span key={name} className="text-[10px] px-2 py-0.5 rounded-full border bg-gray-50 text-gray-700 border-gray-200">
+                {name}
+              </span>
+            ))}
+            {productTagNames.length > 3 && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full border bg-gray-50 text-gray-600 border-gray-200">
+                +{productTagNames.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </td>
 
       <td className="px-4 py-4 align-top text-sm text-gray-600">{p.category}</td>
 
+      {/* Stock cell with colored bar + pill based on age */}
+      <td className="px-4 py-4 align-top text-sm">
+        <div
+          className={`inline-flex items-center gap-2 px-2 py-1 rounded border ${ageClasses.bg} ${ageClasses.border}`}
+          title={
+            monthsOld == null
+              ? "Unknown stock age"
+              : `${monthsOld.toFixed(1)} mo old • since ${latestTs ? new Date(latestTs).toLocaleDateString() : "-"}`
+          }
+          style={{ alignItems: "center" }}
+        >
+          {/* small vertical bar for emphasis */}
+          <span className={`inline-block w-1 h-6 rounded mr-1 ${ageClasses.bar}`} />
+          <span className={`text-[11px] font-semibold ${ageClasses.text}`}>{stockValue}</span>
+          <span className={`ml-2 text-[10px] px-2 py-0.5 rounded-full border ${ageClasses.bg} ${ageClasses.text} ${ageClasses.border}`}>
+            {ageClasses.label}
+          </span>
+        </div>
+      </td>
+
       <td className="px-4 py-4 align-top text-sm font-semibold text-gray-900">₹{p.price}</td>
 
-      <td className="px-4 py-4 align-top">
-        <span
-          className={`px-2 py-1 rounded-md text-xs font-medium ${((p.max_quantity ?? 0) <= 5) ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700"}`}
-        >
-          {p.max_quantity ?? 0} pcs
-        </span>
-      </td>
+      <td className="px-4 py-4 align-top text-sm text-gray-600">{p.gst_rate}%</td>
 
       <td className="px-4 py-4 align-top text-right">
         <div className="inline-flex gap-2 items-center">
-          {/* Eye icon used for active/inactive */}
           <button
-            onClick={() => onToggleActive(p)}
-            className={`p-2 rounded-md transition ${p.active ? "bg-blue-50 text-blue-700 hover:bg-blue-100" : "bg-gray-50 text-gray-600 hover:bg-gray-100"}`}
-            disabled={isBusy}
-            title={isBusy ? "Working..." : p.active ? "Mark as inactive (hide)" : "Mark as active (show)"}
+            onClick={() => onOpenBatches(p)}
+            className="p-2 rounded-md bg-white border text-sm hover:bg-gray-50"
+            title="View batches"
           >
-            {isBusy ? "..." : p.active ? <FiEye /> : <FiEyeOff />}
+            <FiList />
           </button>
 
           <button onClick={() => onEdit(p)} className="p-2 rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100" title="Edit">
@@ -141,7 +334,7 @@ function ProductRow({ p, onEdit, onDelete, onToggleActive, busyToggleId }) {
   );
 }
 
-/* ---------- Main component (unchanged logic, only UI uses updated ProductRow) ---------- */
+/* ---------- Main component (API switched to products-with-stock) ---------- */
 export default function MasterAdminProducts() {
   const { token } = useAuth();
   const toast = useToast();
@@ -154,7 +347,17 @@ export default function MasterAdminProducts() {
   const [metaLoading, setMetaLoading] = useState(true);
 
   const [query, setQuery] = useState("");
-  const [showModal, setShowModal] = useState(false);
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [selectedTagIds, setSelectedTagIds] = useState([]);
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
+  const [stockMin, setStockMin] = useState("");
+  const [stockMax, setStockMax] = useState("");
+  const [sortBy, setSortBy] = useState("name"); // name | category | price | gst_rate | stock
+  const [sortDir, setSortDir] = useState("asc"); // asc | desc
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [showDrawer, setShowDrawer] = useState(false);
   const [editing, setEditing] = useState(null);
 
   const [form, setForm] = useState({
@@ -164,10 +367,15 @@ export default function MasterAdminProducts() {
     min_quantity: "",
     max_quantity: "",
     price: "",
+    gst_rate: "",
     category_ids: [],
     tag_ids: [],
     description: "",
     file: null,
+    initial_quantity: "",
+    stocklevel_quantity: "",
+    unit: "box",
+    expire_date: "",
   });
 
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -178,16 +386,37 @@ export default function MasterAdminProducts() {
 
   const [busyToggleId, setBusyToggleId] = useState(null);
 
-  const modalFormRef = useRef(null);
+  const [batches, setBatches] = useState([]);
+  const [batchesDrawer, setBatchesDrawer] = useState({ open: false, product: null, list: [], loading: false });
 
-  async function apiRequest(path, { method = "GET", body = null } = {}) {
+  const drawerFormRef = useRef(null);
+  const tagsById = useMemo(() => {
+    const map = {};
+    (tags || []).forEach((t) => {
+      if (t && (t.id != null)) map[t.id] = t.name || String(t.id);
+    });
+    return map;
+  }, [tags]);
+  const latestBatchTsByProductId = useMemo(() => {
+    const map = {};
+    (batches || []).forEach((b) => {
+      const pid = Number(b.product_id);
+      const ts = new Date(b.added_at || b.created_at || b.expire_date || 0).getTime();
+      if (!Number.isFinite(ts)) return;
+      if (!map[pid] || ts > map[pid]) map[pid] = ts;
+    });
+    return map;
+  }, [batches]);
+
+  // generic apiRequest uses configured HOST + BASE
+  async function apiRequest(path, { method = "GET", body = null, raw = false } = {}) {
     const headers = {};
     const localToken = token || getToken();
     if (localToken) headers["Authorization"] = `Bearer ${localToken}`;
 
     const isForm = typeof FormData !== "undefined" && body instanceof FormData;
 
-    if (!isForm) headers["Content-Type"] = "application/json";
+    if (!isForm && !raw) headers["Content-Type"] = "application/json";
 
     const res = await fetch(`${API_HOST}${API_BASE}${path}`, {
       method,
@@ -212,13 +441,13 @@ export default function MasterAdminProducts() {
     return data;
   }
 
-  // load products
+  /* ---------- load products ---------- */
   useEffect(() => {
     let mounted = true;
     async function load() {
       try {
         setLoading(true);
-        const data = await apiRequest("/products/", { method: "GET" });
+        const data = await apiRequest("/products-with-stock/products", { method: "GET" });
         if (!mounted) return;
         setProducts(Array.isArray(data) ? data.map((d) => ({ ...d, active: d.active ?? true })) : []);
       } catch (err) {
@@ -232,7 +461,7 @@ export default function MasterAdminProducts() {
     return () => (mounted = false);
   }, [token]);
 
-  // load categories + tags
+  /* ---------- load categories + tags ---------- */
   useEffect(() => {
     let mounted = true;
     async function loadMeta() {
@@ -254,16 +483,160 @@ export default function MasterAdminProducts() {
     return () => (mounted = false);
   }, [token]);
 
+  /* ---------- load global batches ---------- */
+  useEffect(() => {
+    let mounted = true;
+    async function loadBatches() {
+      try {
+        const res = await apiRequest("/products-with-stock/stock?only_active=true&limit=200", { method: "GET" });
+        if (!mounted) return;
+        setBatches(Array.isArray(res) ? res : []);
+      } catch (err) {
+        console.error("batches load err", err);
+        setBatches([]);
+      }
+    }
+    loadBatches();
+    return () => (mounted = false);
+  }, [token]);
+
+  // Reset to first page when filters/sorts change
+  useEffect(() => {
+    setPage(1);
+  }, [query, selectedCategoryIds, selectedTagIds, priceMin, priceMax, stockMin, stockMax, sortBy, sortDir]);
+
   const filtered = useMemo(() => {
-    if (!query.trim()) return products;
-    const q = query.toLowerCase();
-    return products.filter(
-      (p) =>
-        (p.name && p.name.toLowerCase().includes(q)) ||
-        (p.sku && p.sku.toLowerCase().includes(q)) ||
-        (p.category && p.category.toLowerCase().includes(q))
-    );
-  }, [products, query]);
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      // search
+      if (q) {
+        const hit =
+          (p.name && p.name.toLowerCase().includes(q)) ||
+          (p.sku && p.sku.toLowerCase().includes(q)) ||
+          (p.category && p.category.toLowerCase().includes(q));
+        if (!hit) return false;
+      }
+
+      // category chips
+      if (selectedCategoryIds.length > 0) {
+        const catIds = Array.isArray(p.category_ids)
+          ? p.category_ids
+          : Array.isArray(p.categories)
+          ? p.categories.map((c) => (typeof c === "object" ? c.id : c))
+          : [];
+        const intersects = catIds.some((id) => selectedCategoryIds.includes(id));
+        if (!intersects) return false;
+      }
+
+      // tag chips
+      if (selectedTagIds.length > 0) {
+        const tagIds = Array.isArray(p.tag_ids)
+          ? p.tag_ids
+          : Array.isArray(p.tags)
+          ? p.tags.map((t) => (typeof t === "object" ? t.id : t))
+          : [];
+        const intersects = tagIds.some((id) => selectedTagIds.includes(id));
+        if (!intersects) return false;
+      }
+
+      // price range
+      const priceNum = Number(p.price ?? 0);
+      if (priceMin !== "" && priceNum < Number(priceMin)) return false;
+      if (priceMax !== "" && priceNum > Number(priceMax)) return false;
+
+      // stock range
+      const stockNum = Number(p.stocklevel_quantity ?? p.stock_quantity ?? 0);
+      if (stockMin !== "" && stockNum < Number(stockMin)) return false;
+      if (stockMax !== "" && stockNum > Number(stockMax)) return false;
+
+      return true;
+    });
+  }, [products, query, selectedCategoryIds, selectedTagIds, priceMin, priceMax, stockMin, stockMax]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let va;
+      let vb;
+      if (sortBy === "name") {
+        va = (a.name || "").toLowerCase();
+        vb = (b.name || "").toLowerCase();
+      } else if (sortBy === "category") {
+        va = (a.category || "").toLowerCase();
+        vb = (b.category || "").toLowerCase();
+      } else if (sortBy === "price") {
+        va = Number(a.price ?? 0);
+        vb = Number(b.price ?? 0);
+      } else if (sortBy === "gst_rate") {
+        va = Number(a.gst_rate ?? 0);
+        vb = Number(b.gst_rate ?? 0);
+      } else if (sortBy === "stock") {
+        va = Number(a.stocklevel_quantity ?? a.stock_quantity ?? 0);
+        vb = Number(b.stocklevel_quantity ?? b.stock_quantity ?? 0);
+      } else {
+        va = 0;
+        vb = 0;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+    return arr;
+  }, [filtered, sortBy, sortDir]);
+
+  const totalItems = sorted.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const paginated = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sorted.slice(start, start + pageSize);
+  }, [sorted, currentPage, pageSize]);
+
+  function toggleSort(column) {
+    if (sortBy === column) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortDir("asc");
+    }
+  }
+
+  function toggleCategoryFilter(id) {
+    setSelectedCategoryIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function toggleTagFilter(id) {
+    setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function clearAllFilters() {
+    setSelectedCategoryIds([]);
+    setSelectedTagIds([]);
+    setPriceMin("");
+    setPriceMax("");
+    setStockMin("");
+    setStockMax("");
+    setQuery("");
+  }
+
+  function getDomain(values, fallbackMax) {
+    const nums = values.filter((v) => Number.isFinite(v));
+    if (nums.length === 0) return { min: 0, max: fallbackMax };
+    return { min: Math.min(...nums), max: Math.max(...nums) };
+  }
+
+  const priceDomain = useMemo(() => {
+    const values = products.map((p) => Number(p.price ?? 0)).filter((n) => !Number.isNaN(n));
+    const { min, max } = getDomain(values, 1000);
+    return { min, max };
+  }, [products]);
+
+  const stockDomain = useMemo(() => {
+    const values = products.map((p) => Number(p.stocklevel_quantity ?? p.stock_quantity ?? 0)).filter((n) => !Number.isNaN(n));
+    const { min, max } = getDomain(values, 100);
+    return { min, max };
+  }, [products]);
 
   function openAdd() {
     setEditing(null);
@@ -274,14 +647,19 @@ export default function MasterAdminProducts() {
       min_quantity: "",
       max_quantity: "",
       price: "",
+      gst_rate: "",
       category_ids: [],
       tag_ids: [],
       description: "",
       file: null,
+      initial_quantity: "",
+      stocklevel_quantity: "",
+      unit: "box",
+      expire_date: "",
     });
     setPreviewUrl(null);
-    setShowModal(true);
-    setTimeout(() => modalFormRef.current?.focus?.(), 50);
+    setShowDrawer(true);
+    setTimeout(() => drawerFormRef.current?.focus?.(), 50);
   }
 
   function openEdit(p) {
@@ -293,14 +671,19 @@ export default function MasterAdminProducts() {
       min_quantity: p.min_quantity ? String(p.min_quantity) : "",
       max_quantity: p.max_quantity ? String(p.max_quantity) : "",
       price: p.price ? String(p.price) : "",
+      gst_rate: p.gst_rate ? String(p.gst_rate) : "",
       category_ids: Array.isArray(p.category_ids) ? p.category_ids : [],
       tag_ids: Array.isArray(p.tag_ids) ? p.tag_ids : [],
       description: p.description ?? "",
       file: null,
+      initial_quantity: "",
+      stocklevel_quantity: p.stocklevel_quantity ?? p.stock_quantity ?? "",
+      unit: p.unit ?? "box",
+      expire_date: "",
     });
     setPreviewUrl(p.image_url ? (p.image_url.startsWith("http") ? p.image_url : `${API_HOST}${p.image_url}`) : null);
-    setShowModal(true);
-    setTimeout(() => modalFormRef.current?.focus?.(), 50);
+    setShowDrawer(true);
+    setTimeout(() => drawerFormRef.current?.focus?.(), 50);
   }
 
   function handleFileChange(e) {
@@ -314,16 +697,7 @@ export default function MasterAdminProducts() {
     }
   }
 
-  function toggleId(listKey, id) {
-    setForm((f) => {
-      const arr = Array.isArray(f[listKey]) ? [...f[listKey]] : [];
-      const idx = arr.indexOf(id);
-      if (idx >= 0) arr.splice(idx, 1);
-      else arr.push(id);
-      return { ...f, [listKey]: arr };
-    });
-  }
-
+  /* ---------- Save (create or update) ---------- */
   async function handleSave(e) {
     e.preventDefault();
     if (!form.name.trim() || !form.sku.trim()) {
@@ -336,27 +710,42 @@ export default function MasterAdminProducts() {
       fd.append("sku", form.sku);
       fd.append("name", form.name);
       if (form.weight !== "") fd.append("weight", form.weight);
+      // Skip min/max quantity if not provided
       if (form.min_quantity !== "") fd.append("min_quantity", form.min_quantity);
       if (form.max_quantity !== "") fd.append("max_quantity", form.max_quantity);
       if (form.price !== "") fd.append("price", form.price);
+      if (form.gst_rate !== "") fd.append("gst_rate", form.gst_rate);
       fd.append("description", form.description || "");
+      // Send JSON strings for arrays — server accepts e.g. [1,2] and [1]
       if (form.category_ids && form.category_ids.length) fd.append("category_ids", JSON.stringify(form.category_ids));
       if (form.tag_ids && form.tag_ids.length) fd.append("tag_ids", JSON.stringify(form.tag_ids));
       if (form.file) fd.append("file", form.file);
 
-      let response = null;
-      if (editing && editing.id) {
-        response = await apiRequest(`/products/${editing.id}`, { method: "PATCH", body: fd });
-        setProducts((prev) => prev.map((p) => (p.id === editing.id ? response : p)));
-        toast("Product updated", "success");
-      } else {
-        response = await apiRequest("/products/", { method: "POST", body: fd });
+      if (!editing) {
+        if (form.initial_quantity !== "") fd.append("initial_quantity", form.initial_quantity);
+        fd.append("unit", form.unit || "box");
+        if (form.expire_date) {
+          const exp = String(form.expire_date);
+          const expStr = exp.includes("T") ? exp : `${exp}T00:00:00`;
+          fd.append("expire_date", expStr);
+        }
+        const response = await apiRequest("/products-with-stock/create", { method: "POST", body: fd });
         setProducts((prev) => [response, ...prev]);
         toast("Product created", "success");
+      } else {
+        if (form.stocklevel_quantity !== "") fd.append("stocklevel_quantity", form.stocklevel_quantity);
+        const response = await apiRequest(`/products-with-stock/products/${editing.id}`, { method: "PATCH", body: fd });
+        setProducts((prev) => prev.map((p) => (p.id === editing.id ? response : p)));
+        toast("Product updated", "success");
       }
 
-      setShowModal(false);
+      setShowDrawer(false);
       setPreviewUrl(null);
+
+      try {
+        const res = await apiRequest("/products-with-stock/stock?only_active=true&limit=200", { method: "GET" });
+        setBatches(Array.isArray(res) ? res : []);
+      } catch {}
     } catch (err) {
       console.error("save err", err);
       const msg = err.body?.detail || err.body?.message || err.message || "Request failed";
@@ -366,11 +755,12 @@ export default function MasterAdminProducts() {
     }
   }
 
+  /* ---------- Delete (hard) ---------- */
   async function handleDeleteConfirmed() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await apiRequest(`/products/${deleteTarget.id}?hard=true`, { method: "DELETE" });
+      await apiRequest(`/products-with-stock/products/${deleteTarget.id}?hard=true`, { method: "DELETE" });
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       toast("Product deleted", "success");
       setDeleteTarget(null);
@@ -382,13 +772,14 @@ export default function MasterAdminProducts() {
     }
   }
 
+  /* ---------- Toggle active ---------- */
   async function handleToggleActive(p) {
     if (!p?.id) return;
     setBusyToggleId(p.id);
     try {
       const action = p.active ? "deactivate" : "activate";
-      const res = await apiRequest(`/products/${p.id}/${action}`, { method: "POST" });
-      const newActive = res?.status === "activated";
+      const res = await apiRequest(`/products-with-stock/products/${p.id}/${action}`, { method: "POST" });
+      const newActive = res?.status === "activated" || action === "activate";
       setProducts((prev) => prev.map((it) => (it.id === p.id ? { ...it, active: newActive } : it)));
       toast(res?.status === "activated" ? "Product activated" : "Product deactivated", "success");
     } catch (err) {
@@ -405,6 +796,45 @@ export default function MasterAdminProducts() {
     };
   }, [previewUrl]);
 
+  /* ---------- Batches drawer actions ---------- */
+  function openBatchesDrawer(product) {
+    const list = batches.filter((b) => Number(b.product_id) === Number(product.id));
+    setBatchesDrawer({ open: true, product, list, loading: false });
+  }
+
+  function closeBatchesDrawer() {
+    setBatchesDrawer({ open: false, product: null, list: [], loading: false });
+  }
+
+  async function createBatchForProduct(payload) {
+    try {
+      const res = await apiRequest("/products-with-stock/stock/batches", { method: "POST", body: payload });
+      setBatchesDrawer((s) => ({ ...s, list: [...s.list, res] }));
+      setBatches((prev) => [...prev, res]);
+      toast("Batch created", "success");
+    } catch (err) {
+      console.error("create batch err", err);
+      toast(err.body?.detail || err.message || "Failed to create batch", "error");
+    }
+  }
+
+  async function patchBatch(batchId, body) {
+    try {
+      const res = await apiRequest(`/products-with-stock/stock/batches/${batchId}`, { method: "PATCH", body });
+      setBatchesDrawer((s) => ({ ...s, list: s.list.map((b) => (b.id === res.id ? res : b)) }));
+      setBatches((prev) => prev.map((b) => (b.id === res.id ? res : b)));
+      toast("Batch updated", "success");
+    } catch (err) {
+      console.error("patch batch err", err);
+      toast(err.body?.detail || err.message || "Failed to update batch", "error");
+    }
+  }
+
+  async function deactivateBatch(batchId) {
+    if (!window.confirm("Deactivate this batch?")) return;
+    await patchBatch(batchId, { active: false });
+  }
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       <MasterAdminSidebar />
@@ -413,14 +843,14 @@ export default function MasterAdminProducts() {
         {/* header */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-    <div className="bg-indigo-50 p-3 rounded-lg">
-      <FiBox className="text-indigo-600 w-6 h-6" />
-    </div>
-    <div>
-      <h1 className="text-xl font-bold text-gray-900">Products</h1>
-      <p className="text-sm text-gray-500">Manage your product inventory and catalog</p>
-    </div>
-  </div>
+            <div className="bg-indigo-50 p-3 rounded-lg">
+              <FiBox className="text-indigo-600 w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Products</h1>
+              <p className="text-sm text-gray-500">Manage your product inventory and catalog</p>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -439,6 +869,96 @@ export default function MasterAdminProducts() {
               <FiPlus />
               <span>Add product</span>
             </button>
+
+            <button
+              onClick={async () => {
+                try {
+                  setLoading(true);
+                  const [prods, bts] = await Promise.all([
+                    apiRequest("/products-with-stock/products", { method: "GET" }),
+                    apiRequest("/products-with-stock/stock?only_active=true&limit=200", { method: "GET" }),
+                  ]);
+                  setProducts(Array.isArray(prods) ? prods : []);
+                  setBatches(Array.isArray(bts) ? bts : []);
+                  toast("Refreshed", "success");
+                } catch (err) {
+                  toast(err?.message || "Refresh failed", "error");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm hover:bg-gray-50"
+            >
+              <FiRefreshCw /> Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Inline filters */}
+        <div className="mt-6 bg-white rounded-xl border border-gray-100 p-3">
+          <div className="flex flex-col gap-3">
+            {/* Legend for stock age colors */}
+            <div className="flex items-center gap-2 text-[11px] text-gray-600 flex-wrap">
+              <span className="text-gray-500">Stock age:</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-emerald-400 border border-emerald-300" /> &lt;3m</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400 border border-blue-300" /> &lt;6m</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-amber-400 border border-amber-300" /> &lt;9m</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-orange-400 border border-orange-300" /> &lt;12m</span>
+              <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-400 border border-red-300" /> ≥12m</span>
+            </div>
+            <div className="flex items-center gap-3 overflow-x-auto">
+              <span className="text-xs text-gray-500 flex-shrink-0">Categories:</span>
+              <button
+                className={`text-xs px-2 py-1 rounded-full border ${selectedCategoryIds.length === 0 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-white text-gray-700 border-gray-200"}`}
+                onClick={() => setSelectedCategoryIds([])}
+              >
+                All
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  className={`text-xs px-2 py-1 rounded-full border ${selectedCategoryIds.includes(c.id) ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-white text-gray-700 border-gray-200"}`}
+                  onClick={() => toggleCategoryFilter(c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-3 overflow-x-auto">
+              <span className="text-xs text-gray-500 flex-shrink-0">Tags:</span>
+              <button
+                className={`text-xs px-2 py-1 rounded-full border ${selectedTagIds.length === 0 ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-white text-gray-700 border-gray-200"}`}
+                onClick={() => setSelectedTagIds([])}
+              >
+                All
+              </button>
+              {tags.map((t) => (
+                <button
+                  key={t.id}
+                  className={`text-xs px-2 py-1 rounded-full border ${selectedTagIds.includes(t.id) ? "bg-emerald-50 text-emerald-700 border-emerald-100" : "bg-white text-gray-700 border-gray-200"}`}
+                  onClick={() => toggleTagFilter(t.id)}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+            {/* Range sliders */}
+            <RangeSliders
+              priceDomain={priceDomain}
+              stockDomain={stockDomain}
+              priceMin={priceMin}
+              priceMax={priceMax}
+              stockMin={stockMin}
+              stockMax={stockMax}
+              setPriceMin={setPriceMin}
+              setPriceMax={setPriceMax}
+              setStockMin={setStockMin}
+              setStockMax={setStockMax}
+            />
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">{filtered.length} matching products</div>
+              <button onClick={clearAllFilters} className="text-xs px-3 py-1.5 rounded border">Clear filters</button>
+            </div>
           </div>
         </div>
 
@@ -448,17 +968,27 @@ export default function MasterAdminProducts() {
             <thead className="bg-white">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Image</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Product</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Category</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Price</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Stock</th>
+                <th onClick={() => toggleSort("name")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 cursor-pointer select-none">
+                  Product {sortBy === "name" && <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </th>
+                <th onClick={() => toggleSort("category")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 cursor-pointer select-none">
+                  Category {sortBy === "category" && <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </th>
+                <th onClick={() => toggleSort("stock")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 cursor-pointer select-none">
+                  Stock {sortBy === "stock" && <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </th>
+                <th onClick={() => toggleSort("price")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 cursor-pointer select-none">
+                  Price {sortBy === "price" && <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </th>
+                <th onClick={() => toggleSort("gst_rate")} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 cursor-pointer select-none">
+                  GST {sortBy === "gst_rate" && <span className="ml-1">{sortDir === "asc" ? "▲" : "▼"}</span>}
+                </th>
                 <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Actions</th>
               </tr>
             </thead>
 
             <tbody className="bg-white divide-y divide-gray-100">
               {loading ? (
-                // skeleton rows
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
                     <td className="px-4 py-6">
@@ -472,10 +1002,13 @@ export default function MasterAdminProducts() {
                       <div className="h-4 bg-gray-100 rounded w-24 animate-pulse" />
                     </td>
                     <td className="px-4 py-6">
+                      <div className="h-4 bg-gray-100 rounded w-16 animate-pulse" />
+                    </td>
+                    <td className="px-4 py-6">
                       <div className="h-4 bg-gray-100 rounded w-20 animate-pulse" />
                     </td>
                     <td className="px-4 py-6">
-                      <div className="h-5 bg-gray-100 rounded w-16 animate-pulse" />
+                      <div className="h-4 bg-gray-100 rounded w-12 animate-pulse" />
                     </td>
                     <td className="px-4 py-6 text-right">
                       <div className="flex gap-2 justify-end">
@@ -486,40 +1019,67 @@ export default function MasterAdminProducts() {
                     </td>
                   </tr>
                 ))
-              ) : filtered.length === 0 ? (
+              ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-4 py-8 text-center text-sm text-gray-500">
+                  <td colSpan="7" className="px-4 py-8 text-center text-sm text-gray-500">
                     No products found.
                   </td>
                 </tr>
               ) : (
-                filtered.map((p) => (
-                  <ProductRow key={p.id} p={p} onEdit={openEdit} onDelete={(prod) => setDeleteTarget(prod)} onToggleActive={handleToggleActive} busyToggleId={busyToggleId} />
+                paginated.map((p) => (
+                  <ProductRow
+                    key={p.id}
+                    p={p}
+                    onEdit={openEdit}
+                    onDelete={(prod) => setDeleteTarget(prod)}
+                    onToggleActive={handleToggleActive}
+                    busyToggleId={busyToggleId}
+                    onOpenBatches={openBatchesDrawer}
+                    tagsById={tagsById}
+                    latestBatchTsByProductId={latestBatchTsByProductId}
+                  />
                 ))
               )}
             </tbody>
           </table>
+
+          {/* Pagination */}
+          <div className="px-4 py-3 flex items-center justify-between">
+            <div className="text-xs text-gray-500">Page {currentPage} of {totalPages} • {totalItems} items</div>
+            <div className="flex items-center gap-3">
+              <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }} className="text-sm border rounded px-2 py-1">
+                <option value={10}>10 / page</option>
+                <option value={25}>25 / page</option>
+                <option value={50}>50 / page</option>
+                <option value={100}>100 / page</option>
+              </select>
+              <div className="flex items-center gap-1">
+                <button disabled={currentPage <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))} className="px-2 py-1 text-sm rounded border disabled:opacity-50">Prev</button>
+                <button disabled={currentPage >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} className="px-2 py-1 text-sm rounded border disabled:opacity-50">Next</button>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* add/edit modal (unchanged) */}
-        {showModal && (
-          <div className="fixed inset-0 z-50 flex items-start md:items-center justify-center pt-6 md:pt-0 px-4">
-            <div className="absolute inset-0 bg-black opacity-30" onClick={() => setShowModal(false)} />
-
-            <div className="relative z-10 w-full max-w-3xl mx-auto">
-              <form onSubmit={handleSave} className="bg-white rounded-lg shadow-lg w-full flex flex-col overflow-hidden" role="dialog" aria-modal="true">
-                {/* header */}
-                <div className="px-6 py-4 border-b">
+        {/* Drawer: add/edit */}
+        {showDrawer && (
+          <div className="fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/30" onClick={() => { setShowDrawer(false); setPreviewUrl(null); }} />
+            <div className="absolute inset-y-0 right-0 w-full max-w-xl bg-white shadow-xl border-l border-gray-100 flex flex-col">
+              <form onSubmit={handleSave} className="flex flex-col h-full" role="dialog" aria-modal="true">
+                <div className="px-5 py-4 border-b flex items-center justify-between">
                   <h3 className="text-lg font-semibold">{editing ? "Edit product" : "Add product"}</h3>
+                  <button type="button" onClick={() => { setShowDrawer(false); setPreviewUrl(null); }} className="p-2 rounded hover:bg-gray-50">
+                    <FiX />
+                  </button>
                 </div>
 
-                {/* body */}
-                <div className="px-6 py-4 overflow-auto" style={{ maxHeight: "70vh" }}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex-1 overflow-auto p-5">
+                  <div className="grid grid-cols-1 gap-4">
                     <div>
                       <label className="text-sm text-gray-600">Product ID</label>
                       <input
-                        ref={modalFormRef}
+                        ref={drawerFormRef}
                         value={form.sku}
                         onChange={(e) => setForm((f) => ({ ...f, sku: e.target.value }))}
                         className="mt-1 w-full px-3 py-2 border rounded"
@@ -539,95 +1099,134 @@ export default function MasterAdminProducts() {
                       />
                     </div>
 
-                    <div>
-                      <label className="text-sm text-gray-600">Price (₹)</label>
-                      <input
-                        value={form.price}
-                        onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-                        className="mt-1 w-full px-3 py-2 border rounded"
-                        type="number"
-                        step="0.01"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600">Weight (g)</label>
-                      <input
-                        value={form.weight}
-                        onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
-                        className="mt-1 w-full px-3 py-2 border rounded"
-                        type="number"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600">Min quantity</label>
-                      <input
-                        value={form.min_quantity}
-                        onChange={(e) => setForm((f) => ({ ...f, min_quantity: e.target.value }))}
-                        className="mt-1 w-full px-3 py-2 border rounded"
-                        type="number"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm text-gray-600">Max quantity</label>
-                      <input
-                        value={form.max_quantity}
-                        onChange={(e) => setForm((f) => ({ ...f, max_quantity: e.target.value }))}
-                        className="mt-1 w-full px-3 py-2 border rounded"
-                        type="number"
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-sm text-gray-600 block mb-1">Categories</label>
-                          <MultiSelectDropdown options={categories} selected={form.category_ids} onChange={(arr) => setForm((f) => ({ ...f, category_ids: arr }))} placeholder="Choose categories" />
-                          <div className="mt-2 text-xs text-gray-500">{form.category_ids.length === 0 ? "No categories selected" : `${form.category_ids.length} selected`}</div>
-                        </div>
-
-                        <div>
-                          <label className="text-sm text-gray-600 block mb-1">Tags</label>
-                          <MultiSelectDropdown options={tags} selected={form.tag_ids} onChange={(arr) => setForm((f) => ({ ...f, tag_ids: arr }))} placeholder="Choose tags" />
-                          <div className="mt-2 text-xs text-gray-500">{form.tag_ids.length === 0 ? "No tags selected" : `${form.tag_ids.length} selected`}</div>
-                        </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Price (₹)</label>
+                        <input
+                          value={form.price}
+                          onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded"
+                          type="number"
+                          step="0.01"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">GST Rate (%)</label>
+                        <input
+                          value={form.gst_rate}
+                          onChange={(e) => setForm((f) => ({ ...f, gst_rate: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded"
+                          type="number"
+                          step="0.01"
+                          required
+                        />
                       </div>
                     </div>
 
-                    <div className="md:col-span-2">
-                      <label className="text-sm text-gray-600">Description</label>
-                      <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} className="mt-1 w-full px-3 py-2 border rounded" rows="3" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600">Weight (g)</label>
+                        <input
+                          value={form.weight}
+                          onChange={(e) => setForm((f) => ({ ...f, weight: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded"
+                          type="number"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600">Image</label>
+                        <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 w-full" required={!editing} />
+                      </div>
+                    </div>
+
+                    {previewUrl && (
+                      <div className="w-40 h-28 rounded overflow-hidden border">
+                        <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm text-gray-600 block mb-1">Categories</label>
+                        <MultiSelectDropdown
+                          options={categories}
+                          selected={form.category_ids}
+                          onChange={(arr) => setForm((f) => ({ ...f, category_ids: arr }))}
+                          placeholder="Choose categories"
+                        />
+                        <div className="mt-2 text-xs text-gray-500">{form.category_ids.length === 0 ? "No categories selected" : `${form.category_ids.length} selected`}</div>
+                      </div>
+                      <div>
+                        <label className="text-sm text-gray-600 block mb-1">Tags</label>
+                        <MultiSelectDropdown
+                          options={tags}
+                          selected={form.tag_ids}
+                          onChange={(arr) => setForm((f) => ({ ...f, tag_ids: arr }))}
+                          placeholder="Choose tags"
+                        />
+                        <div className="mt-2 text-xs text-gray-500">{form.tag_ids.length === 0 ? "No tags selected" : `${form.tag_ids.length} selected`}</div>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="text-sm text-gray-600">Image</label>
-                      <input type="file" accept="image/*" onChange={handleFileChange} className="mt-1 w-full" />
-                      {previewUrl && (
-                        <div className="mt-2 w-40 h-28 rounded overflow-hidden border">
-                          <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                      <label className="text-sm text-gray-600">Description</label>
+                      <textarea
+                        value={form.description}
+                        onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                        className="mt-1 w-full px-3 py-2 border rounded"
+                        rows="3"
+                        required
+                      />
                     </div>
+
+                    {/* Initial quantity (create) / Stock-level (edit) */}
+                    {!editing ? (
+                      <div>
+                        <label className="text-sm text-gray-600">Initial quantity</label>
+                        <input
+                          value={form.initial_quantity}
+                          onChange={(e) => setForm((f) => ({ ...f, initial_quantity: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded"
+                          type="number"
+                        />
+                        <div className="text-xs text-gray-500">This will create initial batch for product when created.</div>
+
+                        <div className="mt-3 text-xs text-gray-600">Unit: <span className="font-medium">box</span></div>
+                        <div className="mt-3">
+                          <label className="text-sm text-gray-600">Expire date</label>
+                          <input
+                            value={form.expire_date}
+                            onChange={(e) => setForm((f) => ({ ...f, expire_date: e.target.value }))}
+                            className="mt-1 w-full px-3 py-2 border rounded"
+                            type="date"
+                          />
+                          <div className="text-xs text-gray-500">Will be sent as YYYY-MM-DDT00:00:00</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="text-sm text-gray-600">Stock-level quantity</label>
+                        <input
+                          value={form.stocklevel_quantity}
+                          onChange={(e) => setForm((f) => ({ ...f, stocklevel_quantity: e.target.value }))}
+                          className="mt-1 w-full px-3 py-2 border rounded"
+                          type="number"
+                        />
+                        <div className="text-xs text-gray-500">Adjust product's stock level on save (server will handle diff).</div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* sticky footer with actions */}
-                <div className="border-t bg-white px-6 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-                  <div className="flex-1 text-left text-xs text-gray-500 sm:text-right sm:flex-none">
-                    <span className="hidden sm:inline-block">{editing ? "Editing product" : "Creating new product"}</span>
-                  </div>
-
-                  <div className="flex gap-3 justify-end">
-                    <button type="button" onClick={() => { setShowModal(false); setPreviewUrl(null); }} className="px-4 py-2 rounded-md border bg-white" disabled={saving}>
-                      Cancel
-                    </button>
-
-                    <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-60" disabled={saving}>
-                      {saving ? (editing ? "Saving..." : "Creating...") : editing ? "Save" : "Create"}
-                    </button>
-                  </div>
+                <div className="border-t bg-white px-5 py-3 flex items-center justify-end gap-3">
+                  <button type="button" onClick={() => { setShowDrawer(false); setPreviewUrl(null); }} className="px-4 py-2 rounded-md border bg-white" disabled={saving}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-60" disabled={saving}>
+                    {saving ? (editing ? "Saving..." : "Creating...") : editing ? "Save" : "Create"}
+                  </button>
                 </div>
               </form>
             </div>
@@ -655,6 +1254,281 @@ export default function MasterAdminProducts() {
             </div>
           </div>
         )}
+
+        {/* Batches Drawer */}
+        {batchesDrawer.open && batchesDrawer.product && (
+          <div className="fixed inset-0 z-50">
+            <div className="absolute inset-0 bg-black/30" onClick={closeBatchesDrawer} />
+            <div className="absolute inset-y-0 right-0 w-full max-w-xl bg-white shadow-xl border-l border-gray-100 flex flex-col">
+              <div className="px-5 py-4 border-b flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold">Batches — {batchesDrawer.product.name}</h3>
+                  <div className="text-xs text-gray-500 mt-1">
+                    Product ID: {batchesDrawer.product.id} • Current stock: {batchesDrawer.product.stocklevel_quantity ?? batchesDrawer.product.stock_quantity ?? 0}
+                  </div>
+                </div>
+                <button type="button" onClick={closeBatchesDrawer} className="p-2 rounded hover:bg-gray-50"><FiX /></button>
+              </div>
+
+              <div className="flex-1 overflow-auto p-5 space-y-4">
+                <div className="border rounded p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium">Active batches</div>
+                    {/* <div className="text-xs text-gray-400">GET /products-with-stock/stock?only_active=true</div> */}
+                  </div>
+
+                  <div className="space-y-3 max-h-64 overflow-auto">
+                    {batchesDrawer.list.length === 0 ? (
+                      <div className="text-xs text-gray-400">No active batches.</div>
+                    ) : (
+                      batchesDrawer.list.map((b) => {
+                        const daysLeft = b.expire_date ? daysBetween(b.expire_date) : null;
+                        const cls = expiryClassesForDays(daysLeft);
+
+                        return (
+                          <div key={b.id} className={`flex items-start justify-between gap-3 p-2 rounded ${cls.bg} border ${cls.bg === "bg-gray-50" ? "border-gray-100" : ""}`}>
+                            <div className="flex items-start gap-3">
+                              {/* coloured vertical bar */}
+                              <div className={`w-1.5 h-12 rounded ${cls.bar} mt-1`} />
+
+                              <div>
+                                {/* <div className="flex items-center gap-2">
+                                  <div className="font-medium text-sm">{b.batch_no || `#${b.id}`}</div>
+                                  <div className={`text-[11px] px-2 py-0.5 rounded-full border ${cls.bg} ${cls.text} ${cls.bar === "bg-gray-300" ? "border-gray-200" : ""}`}>
+                                    {cls.label}
+                                  </div>
+                                </div> */}
+
+                                <div className="text-xs text-gray-600 mt-1">Qty: {b.quantity} {b.unit || ""}</div>
+                                <div className="text-xs text-gray-500">Expiry: {b.expire_date ? formatIN(b.expire_date) : "-"}</div>
+                                <div className="text-xs text-gray-500">Added: {b.added_at ? formatIN(b.added_at) : "-"}</div>
+                                {b.notes && <div className="text-xs text-gray-500 mt-1">Notes: {b.notes}</div>}
+                              </div>
+                            </div>
+
+                            {/* optional actions column */}
+                            <div className="flex flex-col items-end gap-2">
+                              {/* show days-left summary */}
+                              <div className={`text-sm font-semibold ${cls.text}`}>
+                                {daysLeft == null ? "-" : daysLeft < 0 ? `${Math.abs(daysLeft)}d ago` : `${daysLeft}d`}
+                              </div>
+
+                              {/* Deactivate button (if you want) */}
+                              {/* <button onClick={() => deactivateBatch(b.id)} className="inline-flex items-center gap-2 px-2 py-1 rounded border text-sm hover:bg-red-50">
+                                <FiTrash2 className="w-4 h-4 text-red-600" /> Deactivate
+                              </button> */}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="border rounded p-3">
+                  <div className="text-sm font-medium mb-2">Add More Stock </div>
+                  <CreateBatchForm product={batchesDrawer.product} onCreate={(payload) => createBatchForProduct(payload)} />
+                </div>
+              </div>
+
+              <div className="border-t bg-white px-5 py-3 flex items-center justify-end">
+                <button onClick={closeBatchesDrawer} className="px-4 py-2 rounded border">Done</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- CreateBatchForm component ---------- */
+function CreateBatchForm({ product, onCreate }) {
+  const [batchNo, setBatchNo] = useState(() => `init-${product?.id || "x"}-${Math.random().toString(36).slice(2, 8)}`);
+  const [quantity, setQuantity] = useState("");
+  const [unit] = useState("box");
+  const [expireDate, setExpireDate] = useState("");
+  const [notes, setNotes] = useState("ok");
+  const [busy, setBusy] = useState(false);
+  const toast = useToast();
+
+  async function submit(e) {
+    e?.preventDefault();
+    if (!product || !product.id) {
+      toast("No product selected", "error");
+      return;
+    }
+    if (quantity === "" || Number.isNaN(Number(quantity))) {
+      toast("Enter valid quantity", "error");
+      return;
+    }
+    const payload = {
+      product_id: product.id,
+      batch_no: batchNo,
+      quantity: Number(quantity),
+      unit: unit,
+      expire_date: expireDate ? new Date(expireDate).toISOString() : new Date().toISOString(),
+      notes: notes,
+    };
+    try {
+      setBusy(true);
+      await onCreate(payload);
+      setBatchNo(`init-${product.id}-${Math.random().toString(36).slice(2, 8)}`);
+      setQuantity("");
+      setExpireDate("");
+      setNotes("ok");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="grid grid-cols-1 gap-2">
+      {/* <input value={batchNo} onChange={(e) => setBatchNo(e.target.value)} className="px-3 py-2 border rounded" placeholder="Batch no (auto)" /> */}
+      <input value={quantity} onChange={(e) => setQuantity(e.target.value)} className="px-3 py-2 border rounded" placeholder="Quantity" type="number" />
+      <input value={unit} disabled className="px-3 py-2 border rounded bg-gray-50 text-gray-600" placeholder="Unit" />
+      <input value={expireDate} onChange={(e) => setExpireDate(e.target.value)} className="px-3 py-2 border rounded" placeholder="Expiry date" type="date" />
+      {/* <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="px-3 py-2 border rounded" placeholder="Notes" rows="2" /> */}
+      <div className="flex justify-end gap-2">
+        <button type="submit" disabled={busy} className="px-3 py-1 rounded bg-indigo-600 text-white">{busy ? "Creating..." : "Create"}</button>
+      </div>
+    </form>
+  );
+}
+
+/* ---------- RangeSliders component (price & stock) ---------- */
+function RangeSliders({
+  priceDomain,
+  stockDomain,
+  priceMin,
+  priceMax,
+  stockMin,
+  stockMax,
+  setPriceMin,
+  setPriceMax,
+  setStockMin,
+  setStockMax,
+}) {
+  const [pMin, setPMin] = useState(priceMin === "" ? priceDomain.min : Number(priceMin));
+  const [pMax, setPMax] = useState(priceMax === "" ? priceDomain.max : Number(priceMax));
+  const [sMin, setSMin] = useState(stockMin === "" ? stockDomain.min : Number(stockMin));
+  const [sMax, setSMax] = useState(stockMax === "" ? stockDomain.max : Number(stockMax));
+
+  useEffect(() => {
+    setPMin(priceMin === "" ? priceDomain.min : Number(priceMin));
+  }, [priceMin, priceDomain.min]);
+  useEffect(() => {
+    setPMax(priceMax === "" ? priceDomain.max : Number(priceMax));
+  }, [priceMax, priceDomain.max]);
+  useEffect(() => {
+    setSMin(stockMin === "" ? stockDomain.min : Number(stockMin));
+  }, [stockMin, stockDomain.min]);
+  useEffect(() => {
+    setSMax(stockMax === "" ? stockDomain.max : Number(stockMax));
+  }, [stockMax, stockDomain.max]);
+
+  function clamp(val, min, max) {
+    return Math.max(min, Math.min(max, val));
+  }
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="p-3 border rounded">
+        <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
+          <span>Price</span>
+          <span>
+            ₹{pMin} - ₹{pMax}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={priceDomain.min}
+            max={priceDomain.max}
+            value={pMin}
+            onChange={(e) => setPMin(clamp(Number(e.target.value), priceDomain.min, pMax))}
+            className="w-full"
+          />
+          <input
+            type="range"
+            min={priceDomain.min}
+            max={priceDomain.max}
+            value={pMax}
+            onChange={(e) => setPMax(clamp(Number(e.target.value), pMin, priceDomain.max))}
+            className="w-full"
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <button
+            className="text-xs px-2 py-1 rounded border"
+            onClick={() => {
+              setPMin(priceDomain.min);
+              setPMax(priceDomain.max);
+              setPriceMin("");
+              setPriceMax("");
+            }}
+          >
+            Reset
+          </button>
+          <button
+            className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
+            onClick={() => {
+              setPriceMin(String(pMin));
+              setPriceMax(String(pMax));
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+
+      <div className="p-3 border rounded">
+        <div className="flex items-center justify-between mb-2 text-xs text-gray-600">
+          <span>Stock</span>
+          <span>
+            {sMin} - {sMax}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={stockDomain.min}
+            max={stockDomain.max}
+            value={sMin}
+            onChange={(e) => setSMin(clamp(Number(e.target.value), stockDomain.min, sMax))}
+            className="w-full"
+          />
+          <input
+            type="range"
+            min={stockDomain.min}
+            max={stockDomain.max}
+            value={sMax}
+            onChange={(e) => setSMax(clamp(Number(e.target.value), sMin, stockDomain.max))}
+            className="w-full"
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <button
+            className="text-xs px-2 py-1 rounded border"
+            onClick={() => {
+              setSMin(stockDomain.min);
+              setSMax(stockDomain.max);
+              setStockMin("");
+              setStockMax("");
+            }}
+          >
+            Reset
+          </button>
+          <button
+            className="text-xs px-2 py-1 rounded bg-emerald-600 text-white"
+            onClick={() => {
+              setStockMin(String(sMin));
+              setStockMax(String(sMax));
+            }}
+          >
+            Apply
+          </button>
+        </div>
       </div>
     </div>
   );

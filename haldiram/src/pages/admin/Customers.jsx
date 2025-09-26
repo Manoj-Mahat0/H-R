@@ -14,8 +14,8 @@ import { useToast } from "../../components/Toast";
  * Expects useAuth() to expose { token } and useToast() to show messages.
  */
 
-// const API_HOST = "https://be.haldiram.globalinfosofts.com";
-const API_HOST = "https://be.haldiram.globalinfosofts.com";
+// const API_HOST = "http://127.0.0.1:8000";
+const API_HOST = "http://127.0.0.1:8000";
 
 const API_BASE = "/api";
 

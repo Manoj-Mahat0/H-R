@@ -1,6 +1,7 @@
 // src/pages/Landing.jsx
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
+import { API_URL, API_HOST } from "../lib/config";
 
 /* Inline SVG icons (small, lightweight) */
 const IconBox = () => (
@@ -34,6 +35,76 @@ const IconShield = () => (
 );
 
 export default function Landing() {
+  // products state for product range slider
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [prodError, setProdError] = useState(null);
+
+  // slider state
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [itemsPerSlide, setItemsPerSlide] = useState(getItemsPerView());
+  const autoTimerRef = useRef(null);
+
+  // recompute itemsPerSlide on resize
+  useEffect(() => {
+    function onResize() {
+      setItemsPerSlide(getItemsPerView());
+    }
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // fetch products
+  useEffect(() => {
+    const ac = new AbortController();
+    async function load() {
+      setLoadingProducts(true);
+      setProdError(null);
+      try {
+        const res = await fetch(`${API_URL}/products/`, { signal: ac.signal });
+        if (!res.ok) throw new Error(`Failed to fetch products: ${res.status}`);
+        const data = await res.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (err.name !== "AbortError") setProdError(err.message || String(err));
+      } finally {
+        setLoadingProducts(false);
+      }
+    }
+    load();
+    return () => ac.abort();
+  }, []);
+
+  // auto-advance slider
+  useEffect(() => {
+    // number of slides depends on itemsPerSlide
+    const totalSlides = Math.max(1, Math.ceil(products.length / Math.max(1, itemsPerSlide)));
+    // reset index if out of range when itemsPerSlide or products change
+    setSlideIndex((s) => Math.min(s, totalSlides - 1));
+
+    // clear any existing timer
+    if (autoTimerRef.current) {
+      clearInterval(autoTimerRef.current);
+      autoTimerRef.current = null;
+    }
+    // only auto-advance if more than 1 slide
+    if (totalSlides > 1) {
+      autoTimerRef.current = setInterval(() => {
+        setSlideIndex((curr) => (curr + 1) % totalSlides);
+      }, 3000);
+    }
+    return () => {
+      if (autoTimerRef.current) {
+        clearInterval(autoTimerRef.current);
+        autoTimerRef.current = null;
+      }
+    };
+  }, [products, itemsPerSlide]);
+
+  // helper to compute translate percent
+  const slideWidthPercent = 100 / Math.max(1, itemsPerSlide);
+  const translateX = -(slideIndex * 100);
+
   return (
     <div className="w-full">
       {/* HERO */}
@@ -70,7 +141,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRODUCT RANGE */}
+      {/* PRODUCT RANGE (dynamic, auto slider) */}
       <section className="bg-gray-50 py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-extrabold">Our Product Range</h2>
@@ -78,26 +149,90 @@ export default function Landing() {
             Discover the complete range of authentic Haldiram products including namkeen, sweets, papad, and ready-to-eat meals.
           </p>
 
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {[
-              { title: "Haldiram Namkeen Mix", cat: "Namkeen", desc: "Traditional savory snacks mix" },
-              { title: "Haldiram Sweets", cat: "Sweets", desc: "Premium quality Indian sweets" },
-              { title: "Haldiram Papad", cat: "Papad", desc: "Crispy papad varieties" },
-              { title: "Haldiram Ready-to-Eat", cat: "Ready-to-Eat", desc: "Convenient meal solutions" },
-            ].map((p) => (
-              <article key={p.title} className="bg-white rounded-2xl shadow-md overflow-hidden">
-                <div className="h-44 bg-[#07107a] flex items-center justify-center">
-                  <div className="text-white">
-                    <IconBox />
+          <div className="mt-10 relative">
+            {/* slider viewport */}
+            <div className="overflow-hidden">
+              {/* track */}
+              <div
+                className="flex transition-transform duration-700 ease-in-out"
+                style={{
+                  width: `${(products.length || 1) * slideWidthPercent}%`,
+                  transform: `translateX(${translateX}%)`,
+                }}
+              >
+                {/* render product cards sized by slide width */}
+                {products.map((p) => {
+                  // full image URL - API_HOST + image_url (image_url may already begin with '/')
+                  const src = p.image_url ? `${API_HOST}${p.image_url}` : null;
+                  return (
+                    <article
+                      key={p.id}
+                      className="bg-white rounded-2xl shadow-md overflow-hidden m-3 flex-shrink-0"
+                      style={{ width: `${slideWidthPercent}%`, maxWidth: `${100 / itemsPerSlide}%` }}
+                    >
+                      <div className="h-44 bg-[#07107a] flex items-center justify-center">
+                        {src ? (
+                          // try to keep image covering area
+                          // use simple <img> tag; if broken, fallback happens (alt)
+                          <img
+                            src={src}
+                            alt={p.name}
+                            className="object-contain h-40"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                        ) : (
+                          <div className="text-white">
+                            <IconBox />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-6 text-left">
+                        <div className="text-sm text-[#07107a] font-semibold">{p.category}</div>
+                        <h3 className="mt-2 text-lg font-semibold text-gray-900">{p.name}</h3>
+                        <p className="mt-2 text-sm text-gray-500">{p.description}</p>
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="font-semibold text-gray-900">₹{p.price}</div>
+                          <div className="text-sm text-gray-500">{p.weight}g</div>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+                {/* if no products, render some placeholders */}
+                {products.length === 0 && !loadingProducts && (
+                  <div className="p-8 w-full">
+                    <div className="text-gray-500">No products found.</div>
                   </div>
-                </div>
-                <div className="p-6 text-left">
-                  <div className="text-sm text-[#07107a] font-semibold">{p.cat}</div>
-                  <h3 className="mt-2 text-lg font-semibold text-gray-900">{p.title}</h3>
-                  <p className="mt-2 text-sm text-gray-500">{p.desc}</p>
-                </div>
-              </article>
-            ))}
+                )}
+              </div>
+            </div>
+
+            {/* controls (small dots) */}
+            <div className="mt-6 flex items-center justify-center gap-2">
+              {Array.from({ length: Math.max(1, Math.ceil((products.length || 1) / Math.max(1, itemsPerSlide))) }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setSlideIndex(i)}
+                  className={`w-2 h-2 rounded-full ${i === slideIndex ? "bg-[#07107a]" : "bg-gray-300"}`}
+                  aria-label={`Go to slide ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            {/* loading / error */}
+            {loadingProducts && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-white/80 px-4 py-2 rounded-md text-sm">Loading products…</div>
+              </div>
+            )}
+            {prodError && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="bg-red-50 border border-red-200 px-4 py-2 rounded-md text-sm text-red-700">{prodError}</div>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -285,4 +420,17 @@ export default function Landing() {
       </footer>
     </div>
   );
+}
+
+/* helpers */
+
+function getItemsPerView() {
+  // Tailwind-like breakpoints:
+  // sm >= 640 => 2 per view
+  // lg >= 1024 => 4 per view
+  if (typeof window === "undefined") return 1;
+  const w = window.innerWidth;
+  if (w >= 1024) return 4;
+  if (w >= 640) return 2;
+  return 1;
 }

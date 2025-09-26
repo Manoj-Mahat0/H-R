@@ -6,6 +6,7 @@ import {
   FiHome, FiTrendingUp, FiFileText, FiUsers, FiUser, FiLogOut, FiChevronLeft, FiList
 } from "react-icons/fi";
 import { clearAuth } from "../lib/auth";
+import Logo from "../assets/logo.png";
 
 export default function AccountantSidebar() {
   const { user, logout } = useAuth();
@@ -97,9 +98,16 @@ function SidebarInner({ collapsed, onToggleCollapse, user, onLogout, locationPat
     <div className="h-full flex flex-col">
       {/* Header */}
       <div className={`flex items-center gap-3 px-4 py-4 border-b border-gray-100 ${compact ? "justify-center" : ""}`}>
-        <div className="bg-gradient-to-br from-blue-600 to-blue-400 text-white rounded-lg p-2">
-          <FiUser className="w-5 h-5" />
-        </div>
+        <Link to="/" className="flex items-center gap-3">
+                  <div className={`rounded-lg p-2 ${compact ? "bg-transparent" : "bg-gradient-to-br from-white to-white"}`}>
+                    <img
+                      src={Logo}
+                      alt="Sri Gopal Traders logo"
+                      className={`${compact ? "h-6 w-6" : "h-6 w-auto"}`}
+                      loading="lazy"
+                    />
+                  </div>
+                </Link>
         {!compact && (
           <div>
             <div className="text-sm font-semibold text-gray-900">Accountant Panel</div>

@@ -119,6 +119,7 @@ class Product(SQLModel, table=True):
     description: Optional[str] = None
     image_path: Optional[str] = Field(default=None, sa_column=Column("image_path", Text))
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    gst_rate: float = 0.0   # ✅ New field
     active: bool = Field(default=True)            # <-- NEW: active flag
 
 
@@ -161,3 +162,89 @@ class Vehicle(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = None
 
+class VendorLimit(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    vendor_id: int = Field(foreign_key="user.id", index=True)
+
+    # ✅ new fields
+    limit_amount: float = Field(default=0.0)    # monthly purchase limit in rupees
+    limit_boxes: int = Field(default=0)         # monthly purchase limit in boxes
+
+    month: Optional[str] = None                 # "YYYY-MM"
+    note: Optional[str] = None
+    created_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class PurchaseItemHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    purchase_item_id: int = Field(foreign_key="purchaseitem.id", index=True)
+    purchase_order_id: Optional[int] = Field(foreign_key="purchaseorder.id", index=True)
+    old_qty: int
+    new_qty: int
+    changed_by: Optional[int] = Field(foreign_key="user.id")
+    reason: Optional[str] = None
+    changed_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class StockBatch(SQLModel, table=True):
+    """
+    Represents a batch/lot of a product in stock with an expiry date.
+    We keep quantity as integer (number of pieces) and also allow an optional weight if needed.
+    """
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_id: int = Field(foreign_key="product.id", index=True)
+    batch_no: Optional[str] = None
+    quantity: int = Field(default=0)          # number of pieces in this batch
+    unit: Optional[str] = Field(default="pcs")# unit e.g. pcs, box, kg
+    expire_date: Optional[datetime] = None
+    added_at: datetime = Field(default_factory=datetime.utcnow)
+    created_by: Optional[int] = Field(default=None, foreign_key="user.id", index=True)
+    notes: Optional[str] = None
+    active: bool = Field(default=True)        # for soft-delete
+
+
+
+class OrderStatus:
+    PLACED = "placed"
+    CONFIRMED = "confirmed"
+    PROCESSING = "processing"
+    SHIPPED = "shipped"
+    RECEIVED = "received"
+    PAYMENT_CHECKED = "payment_checked"
+    CANCELLED = "cancelled"
+    RETURNED = "returned"
+
+class Order(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    customer_id: int = Field(foreign_key="user.id", index=True)   # customer or vendor who placed
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = Field(default=OrderStatus.PLACED, index=True)
+    total_amount: float = Field(default=0.0)
+    vehicle_id: Optional[int] = Field(default=None, foreign_key="vehicle.id", index=True)   # <-- add this
+    notes: Optional[str] = None
+    shipping_address: Optional[str] = None
+    payment_checked_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    confirmed_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    processed_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    shipped_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    received_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    cancelled_by: Optional[int] = Field(default=None, foreign_key="user.id")
+
+class OrderItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_id: int = Field(foreign_key="order.id", index=True)
+    product_id: int = Field(foreign_key="product.id", index=True)
+    original_qty: int = Field(default=0)  # what customer originally ordered
+    final_qty: int = Field(default=0)     # quantity currently assigned to the order (may be changed by admin)
+    unit_price: float = Field(default=0.0)
+    subtotal: float = Field(default=0.0)
+    notes: Optional[str] = None
+
+class OrderItemHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    order_item_id: int = Field(foreign_key="orderitem.id", index=True)
+    changed_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    old_final_qty: int = Field(default=0)
+    new_final_qty: int = Field(default=0)
+    reason: Optional[str] = None
+    changed_at: datetime = Field(default_factory=datetime.utcnow)
