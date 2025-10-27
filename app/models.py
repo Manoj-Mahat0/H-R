@@ -30,6 +30,7 @@ class Role(str):
     VENDOR = "vendor"
     STAFF = "staff"
     DRIVER = "driver"
+    SECURITY = "security"
 
 class UserBase(SQLModel):
     name: str
@@ -248,3 +249,89 @@ class OrderItemHistory(SQLModel, table=True):
     new_final_qty: int = Field(default=0)
     reason: Optional[str] = None
     changed_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+
+# --- NewOrder tables (explicit table names) ---
+class NewOrder(SQLModel, table=True):
+    __tablename__ = "new_order"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    vendor_id: int = Field(foreign_key="user.id", index=True)   # vendor (user with role 'vendor')
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    status: str = Field(default="placed", index=True)           # placed / processing / dispatched / received / cancelled
+    total_amount: float = Field(default=0.0)
+    vehicle_id: Optional[int] = Field(default=None, foreign_key="vehicle.id", index=True)
+    notes: Optional[str] = None
+    shipping_address: Optional[str] = None
+
+    # verification / workflow fields
+    verified: bool = Field(default=False)
+    verified_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    verified_at: Optional[datetime] = None
+
+    # small convenience: who last modified (optional)
+    last_modified_by: Optional[int] = Field(default=None, foreign_key="user.id")
+    last_modified_at: Optional[datetime] = None
+
+class NewOrderItem(SQLModel, table=True):
+    __tablename__ = "new_order_item"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    new_order_id: int = Field(foreign_key="new_order.id", index=True)
+    product_id: int = Field(foreign_key="product.id", index=True)
+    qty: int = Field(default=0)
+    unit_price: float = Field(default=0.0)
+    subtotal: float = Field(default=0.0)
+    notes: Optional[str] = None
+
+
+
+# New Invoice models (explicit table names)
+class NewInvoice(SQLModel, table=True):
+    __tablename__ = "new_invoice"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    invoice_id: str = Field(index=True)            # e.g. "INV-2025-09-27-2"
+    order_id: Optional[int] = Field(default=None, foreign_key="new_order.id", index=True)
+    invoice_date: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    vendor_name: Optional[str] = None
+    customer_shipping_address: Optional[str] = None
+    discount_total: float = Field(default=0.0)
+    total_amount: float = Field(default=0.0)       # total before discounts and rounding? we'll store computed
+    gst_total: float = Field(default=0.0)
+    cgst_total: float = Field(default=0.0)
+    sgst_total: float = Field(default=0.0)
+    round_off: float = Field(default=0.0)
+    net_total: float = Field(default=0.0)         # final rounded net total
+    notes: Optional[str] = None
+    meta: Optional[str] = Field(default=None, sa_column=Column("meta", Text))  # store JSON as text
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class NewInvoiceItem(SQLModel, table=True):
+    __tablename__ = "new_invoice_item"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    new_invoice_id: int = Field(foreign_key="new_invoice.id", index=True)
+    sku: str
+    product_id: Optional[int] = Field(default=None, foreign_key="product.id", index=True)
+    name: Optional[str] = None
+    qty: int = Field(default=0)
+    unit_price: float = Field(default=0.0)
+    subtotal: float = Field(default=0.0)     # qty * unit_price
+    gst_rate: float = Field(default=0.0)     # percentage, e.g. 12
+    gst_amount: float = Field(default=0.0)   # subtotal * gst_rate/100
+    cgst: float = Field(default=0.0)         # half of gst_amount
+    sgst: float = Field(default=0.0)
+
+
+
+class Attendance(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id", index=True)
+    type: str  # "in" or "out"
+    timestamp_utc: datetime = Field(default_factory=datetime.utcnow)
+    timestamp_ist: datetime | None = None
+    lat: float | None = None
+    lng: float | None = None
+    device_id: str | None = None
+    site_name: str | None = None   # optional site identifier
+    recorded_by: int | None = Field(default=None, foreign_key="user.id")  # who recorded (security/admin) or same as user_id
+    note: str | None = None

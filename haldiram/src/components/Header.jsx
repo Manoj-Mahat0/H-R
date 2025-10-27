@@ -6,16 +6,16 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50 shadow-sm transition-colors">
       <div className="container mx-auto flex items-center justify-between gap-4 py-3 px-4">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img
-            src="/logo.png" // apna logo public/logo.png me daal dena
+            src="/logo.png"
             alt="Logo"
             className="h-9 w-9 object-contain"
           />
-          <span className="text-lg md:text-xl font-extrabold text-gray-800">
+          <span className="text-lg md:text-xl font-extrabold text-gray-800 dark:text-gray-100">
             Sri Gopal Traders
           </span>
         </Link>
@@ -24,47 +24,14 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-4">
           <Link
             to="/"
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
+            className={`px-3 py-2 rounded-md text-sm font-medium transition ${
               loc.pathname === "/"
-                ? "text-blue-600 bg-blue-50"
-                : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
+                : "text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:bg-gray-50 dark:hover:text-blue-400 dark:hover:bg-gray-800"
             }`}
           >
             Home
           </Link>
-
-          {/* <Link
-            to="/products"
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
-              loc.pathname === "/products"
-                ? "text-blue-600 bg-blue-50"
-                : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-            }`}
-          >
-            Products
-          </Link>
-
-          <Link
-            to="/about"
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
-              loc.pathname === "/about"
-                ? "text-blue-600 bg-blue-50"
-                : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-            }`}
-          >
-            About
-          </Link> */}
-
-          {/* <Link
-            to="/login"
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
-              loc.pathname === "/login"
-                ? "text-blue-600 bg-blue-50"
-                : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-            }`}
-          >
-            Login
-          </Link> */}
 
           <Link
             to="/login"
@@ -79,7 +46,7 @@ export default function Header() {
           <button
             aria-label="Toggle menu"
             onClick={() => setOpen((s) => !s)}
-            className="p-2 rounded-md text-gray-600 hover:bg-gray-100"
+            className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
           >
             {open ? (
               // X icon
@@ -98,51 +65,27 @@ export default function Header() {
 
       {/* Mobile menu panel */}
       {open && (
-        <div className="md:hidden border-t border-gray-200 bg-white">
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div className="container mx-auto px-4 pb-4">
             <Link
               to="/"
               onClick={() => setOpen(false)}
-              className={`block px-4 py-3 text-sm font-medium rounded-md ${
+              className={`block px-4 py-3 text-sm font-medium rounded-md transition ${
                 loc.pathname === "/"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:bg-gray-50 dark:hover:text-blue-400 dark:hover:bg-gray-800"
               }`}
             >
               Home
             </Link>
 
             <Link
-              to="/products"
-              onClick={() => setOpen(false)}
-              className={`block px-4 py-3 text-sm font-medium rounded-md ${
-                loc.pathname === "/products"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-              }`}
-            >
-              Products
-            </Link>
-
-            <Link
-              to="/about"
-              onClick={() => setOpen(false)}
-              className={`block px-4 py-3 text-sm font-medium rounded-md ${
-                loc.pathname === "/about"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
-              }`}
-            >
-              About
-            </Link>
-
-            <Link
               to="/login"
               onClick={() => setOpen(false)}
-              className={`block px-4 py-3 text-sm font-medium rounded-md ${
+              className={`block px-4 py-3 text-sm font-medium rounded-md transition ${
                 loc.pathname === "/login"
-                  ? "text-blue-600 bg-blue-50"
-                  : "text-gray-700 hover:text-blue-600 hover:bg-gray-50"
+                  ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30"
+                  : "text-gray-700 dark:text-gray-300 hover:text-blue-600 hover:bg-gray-50 dark:hover:text-blue-400 dark:hover:bg-gray-800"
               }`}
             >
               Login

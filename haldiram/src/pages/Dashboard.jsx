@@ -22,34 +22,41 @@ function Badge({ children, tone = "neutral" }) {
 
 function StatCard({ title, value, delta, icon, tone = "neutral", loading = false, to }) {
   return (
-    <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-      <div className="flex items-start justify-between">
-        <div className="text-sm text-gray-500">{title}</div>
-        {icon && <div className="text-gray-400">{icon}</div>}
-      </div>
-      <div className="mt-2">
-        {loading ? (
-          <div className="h-7 w-20 bg-gray-100 rounded animate-pulse" />
-        ) : (
-          <div className="text-2xl font-bold text-gray-900">{value}</div>
-        )}
-      </div>
-      <div className="mt-2">
-        {typeof delta === "string" ? (
-          <Badge tone={tone}>{delta}</Badge>
-        ) : (
-          <div className="h-4 w-28 bg-gray-50 rounded" />
-        )}
-      </div>
-      {to && (
-        <div className="mt-3">
-          <Link className="text-xs text-emerald-700 hover:text-emerald-800" to={to}>
-            View details →
-          </Link>
-        </div>
+  <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow transition-colors">
+    <div className="flex items-start justify-between">
+      <div className="text-sm text-gray-500 dark:text-gray-400">{title}</div>
+      {icon && <div className="text-gray-400 dark:text-gray-300">{icon}</div>}
+    </div>
+
+    <div className="mt-2">
+      {loading ? (
+        <div className="h-7 w-20 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+      ) : (
+        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</div>
       )}
     </div>
-  );
+
+    <div className="mt-2">
+      {typeof delta === "string" ? (
+        <Badge tone={tone}>{delta}</Badge>
+      ) : (
+        <div className="h-4 w-28 bg-gray-50 dark:bg-gray-700 rounded" />
+      )}
+    </div>
+
+    {to && (
+      <div className="mt-3">
+        <Link
+          className="text-xs text-emerald-700 hover:text-emerald-800 dark:text-emerald-300 dark:hover:text-emerald-200"
+          to={to}
+        >
+          View details →
+        </Link>
+      </div>
+    )}
+  </div>
+);
+
 }
 
 function SkeletonLine({ width = "w-full" }) {
@@ -146,7 +153,7 @@ export default function Dashboard() {
       try {
         const token = getToken();
         if (!token) throw new Error("No auth token. Please login.");
-        const data = await authFetch("/vendor/admin/orders?skip=0&limit=100", { method: "GET" });
+        const data = await authFetch("/new-orders/?limit=2000", { method: "GET" });
         if (!mounted) return;
         const arr = Array.isArray(data) ? data : [];
         setOrders(arr);
@@ -288,198 +295,231 @@ export default function Dashboard() {
   }, [latestOrder]);
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <MasterAdminSidebar />
+  <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
+    <MasterAdminSidebar />
 
-      <div className="flex-1 p-6 md:p-8">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-sm text-gray-600">Welcome back! Here's what's happening with your business.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-sm text-gray-600">{user?.name || user?.email}</div>
-            <div className="flex items-center gap-2">
-              <Link to="/orders" className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 text-white hover:bg-emerald-700">Orders</Link>
-              <Link to="/inventory" className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 hover:bg-gray-50">Inventory</Link>
-            </div>
-          </div>
+    <div className="flex-1 p-6 md:p-8">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Welcome back! Here's what's happening with your business.
+          </p>
         </div>
-
-        {/* Stats */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((s) => (
-            <StatCard
-              key={s.title}
-              title={s.title}
-              value={s.value}
-              delta={s.delta}
-              icon={s.icon}
-              tone={s.tone}
-              loading={s.value === "…"}
-            />
-          ))}
-        </div>
-
-        {/* Latest Order + Low Stock */}
-        <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Latest Order */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 xl:col-span-2">
-            <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold text-gray-900">Latest Order</h4>
-              <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/orders">See all</Link>
-            </div>
-
-            <div className="mt-4">
-              {loadingOrders ? (
-                <div className="space-y-3">
-                  <SkeletonLine width="w-48" />
-                  <SkeletonLine width="w-64" />
-                  <SkeletonLine width="w-40" />
-                </div>
-              ) : ordersError ? (
-                <ErrorAlert message={ordersError} />
-              ) : latestOrder ? (
-                <div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="font-medium text-gray-800">Order #{latestOrder.id}</div>
-                    <Badge tone={statusTone(latestOrder.status)}>{latestOrder.status}</Badge>
-                  </div>
-                  <div className="mt-1 text-sm text-gray-500">
-                    Created: {new Date(latestOrder.created_at).toLocaleString()}
-                  </div>
-                  <div className="mt-2 text-sm">Total: ₹{latestOrder.total}</div>
-
-                  <div className="mt-4">
-                    <div className="text-sm font-semibold">Items</div>
-                    <ul className="mt-2 divide-y divide-gray-100">
-                      {latestOrderItems.length ? (
-                        latestOrderItems.map((it) => (
-                          <li key={it.id} className="py-3 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center text-xs font-semibold">
-                              {(productMap[String(it.product_id)]?.name || String(it.product_id))
-                                .split(" ")
-                                .map((s) => s[0])
-                                .slice(0, 2)
-                                .join("")
-                                .toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm text-gray-800 truncate">{getProductLabel(it)}</div>
-                            </div>
-                            <Badge tone="info">Qty: {it.qty}</Badge>
-                          </li>
-                        ))
-                      ) : (
-                        <li className="py-3 text-sm text-gray-500">No items</li>
-                      )}
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500">No orders found.</div>
-              )}
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block text-sm text-gray-600 dark:text-gray-300">
+            {user?.name || user?.email}
           </div>
-
-          {/* Low Stock Alerts */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <h4 className="text-lg font-semibold text-gray-900">Low Stock Alerts</h4>
-              <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/inventory">Manage</Link>
-            </div>
-            <div className="mt-4 space-y-3">
-              {loadingStock ? (
-                <div className="space-y-2">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <SkeletonLine key={i} />
-                  ))}
-                </div>
-              ) : stockError ? (
-                <ErrorAlert message={stockError} />
-              ) : lowStock.length === 0 ? (
-                <div className="text-sm text-gray-500">No low stock items.</div>
-              ) : (
-                lowStock.slice(0, 6).map((p) => (
-                  <div key={p.product_id} className="flex items-center justify-between p-3 rounded-md border border-red-100 bg-red-50">
-                    <div className="min-w-0">
-                      <div className="font-medium text-red-700 truncate">{p.name}</div>
-                      <div className="text-xs text-red-600">Only {p.qty} units left</div>
-                    </div>
-                    <Badge tone={lowStockTone(p.qty)}>{Number(p.qty)} left</Badge>
-                  </div>
-                ))
-              )}
-              {!loadingStock && lowStock.length > 6 && (
-                <div className="text-xs text-gray-500">Showing top 6 low-stock items.</div>
-              )}
-            </div>
-            {exceedStock.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center justify-between">
-                  <h5 className="text-sm font-semibold text-gray-900">Overstocked</h5>
-                  <Badge tone="warning">{exceedStock.length}</Badge>
-                </div>
-                <div className="mt-2 space-y-2">
-                  {exceedStock.slice(0, 3).map((p) => (
-                    <div key={p.product_id} className="flex items-center justify-between p-2 rounded border border-amber-100 bg-amber-50">
-                      <div className="text-sm text-amber-800 truncate">{p.name}</div>
-                      <span className="text-xs text-amber-700">Qty: {p.qty}</span>
-                    </div>
-                  ))}
-                  {exceedStock.length > 3 && (
-                    <div className="text-xs text-gray-500">And {exceedStock.length - 3} more…</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Orders */}
-        <div className="mt-8 bg-white rounded-xl p-6 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between">
-            <h4 className="text-lg font-semibold text-gray-900">Recent Orders</h4>
-            <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/orders">View all</Link>
-          </div>
-          <div className="mt-4">
-            {loadingOrders ? (
-              <div className="space-y-2">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <SkeletonLine key={i} />
-                ))}
-              </div>
-            ) : ordersError ? (
-              <ErrorAlert message={ordersError} />
-            ) : orders.length === 0 ? (
-              <div className="text-sm text-gray-500">No recent orders.</div>
-            ) : (
-              <ul className="divide-y divide-gray-100">
-                {orders
-                  .slice()
-                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-                  .slice(0, 5)
-                  .map((o) => (
-                    <li key={o.id} className="py-3 flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center text-xs font-semibold">
-                        #{o.id}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-sm text-gray-800 truncate">₹{o.total}</div>
-                          <div className="text-xs text-gray-500 flex-shrink-0">{new Date(o.created_at).toLocaleDateString()}</div>
-                        </div>
-                        <div className="text-xs text-gray-500 truncate">{Array.isArray(o.items) ? `${o.items.length} item(s)` : "—"}</div>
-                      </div>
-                      <Badge tone={statusTone(o.status)}>{o.status}</Badge>
-                    </li>
-                  ))}
-              </ul>
-            )}
+          <div className="flex items-center gap-2">
+            <Link
+              to="/orders"
+              className="px-3 py-1.5 rounded-lg text-sm bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              Orders
+            </Link>
+            <Link
+              to="/inventory"
+              className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100"
+            >
+              Inventory
+            </Link>
           </div>
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((s) => (
+          <StatCard
+            key={s.title}
+            title={s.title}
+            value={s.value}
+            delta={s.delta}
+            icon={s.icon}
+            tone={s.tone}
+            loading={s.value === "…"}
+          />
+        ))}
+      </div>
+
+      {/* Latest Order + Low Stock */}
+      <div className="mt-8 grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Latest Order */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700 xl:col-span-2">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Latest Order</h4>
+            <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/orders">
+              See all
+            </Link>
+          </div>
+
+          <div className="mt-4">
+            {loadingOrders ? (
+              <div className="space-y-3">
+                <SkeletonLine width="w-48" />
+                <SkeletonLine width="w-64" />
+                <SkeletonLine width="w-40" />
+              </div>
+            ) : ordersError ? (
+              <ErrorAlert message={ordersError} />
+            ) : latestOrder ? (
+              <div>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="font-medium text-gray-800 dark:text-gray-100">Order #{latestOrder.id}</div>
+                  <Badge tone={statusTone(latestOrder.status)}>{latestOrder.status}</Badge>
+                </div>
+                <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Created: {new Date(latestOrder.created_at).toLocaleString()}
+                </div>
+                <div className="mt-2 text-sm dark:text-gray-100">Total: ₹{latestOrder.total}</div>
+
+                <div className="mt-4">
+                  <div className="text-sm font-semibold text-gray-800 dark:text-gray-100">Items</div>
+                  <ul className="mt-2 divide-y divide-gray-100 dark:divide-gray-700">
+                    {latestOrderItems.length ? (
+                      latestOrderItems.map((it) => (
+                        <li key={it.id} className="py-3 flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-xs font-semibold">
+                            {(productMap[String(it.product_id)]?.name || String(it.product_id))
+                              .split(" ")
+                              .map((s) => s[0])
+                              .slice(0, 2)
+                              .join("")
+                              .toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-800 dark:text-gray-100 truncate">
+                              {getProductLabel(it)}
+                            </div>
+                          </div>
+                          <Badge tone="info">Qty: {it.qty}</Badge>
+                        </li>
+                      ))
+                    ) : (
+                      <li className="py-3 text-sm text-gray-500 dark:text-gray-400">No items</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500 dark:text-gray-400">No orders found.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Low Stock Alerts */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Low Stock Alerts</h4>
+            <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/inventory">
+              Manage
+            </Link>
+          </div>
+          <div className="mt-4 space-y-3">
+            {loadingStock ? (
+              <div className="space-y-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <SkeletonLine key={i} />
+                ))}
+              </div>
+            ) : stockError ? (
+              <ErrorAlert message={stockError} />
+            ) : lowStock.length === 0 ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">No low stock items.</div>
+            ) : (
+              lowStock.slice(0, 6).map((p) => (
+                <div
+                  key={p.product_id}
+                  className="flex items-center justify-between p-3 rounded-md border border-red-100 dark:border-red-900/40 bg-red-50 dark:bg-red-900/20"
+                >
+                  <div className="min-w-0">
+                    <div className="font-medium text-red-700 dark:text-red-300 truncate">{p.name}</div>
+                    <div className="text-xs text-red-600 dark:text-red-300">Only {p.qty} units left</div>
+                  </div>
+                  <Badge tone={lowStockTone(p.qty)}>{Number(p.qty)} left</Badge>
+                </div>
+              ))
+            )}
+            {!loadingStock && lowStock.length > 6 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400">Showing top 6 low-stock items.</div>
+            )}
+          </div>
+          {exceedStock.length > 0 && (
+            <div className="mt-6">
+              <div className="flex items-center justify-between">
+                <h5 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Overstocked</h5>
+                <Badge tone="warning">{exceedStock.length}</Badge>
+              </div>
+              <div className="mt-2 space-y-2">
+                {exceedStock.slice(0, 3).map((p) => (
+                  <div
+                    key={p.product_id}
+                    className="flex items-center justify-between p-2 rounded border border-amber-100 dark:border-amber-900/30 bg-amber-50 dark:bg-amber-900/10"
+                  >
+                    <div className="text-sm text-amber-800 dark:text-amber-200 truncate">{p.name}</div>
+                    <span className="text-xs text-amber-700 dark:text-amber-200">Qty: {p.qty}</span>
+                  </div>
+                ))}
+                {exceedStock.length > 3 && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">And {exceedStock.length - 3} more…</div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Recent Orders */}
+      <div className="mt-8 bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="flex items-center justify-between">
+          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Recent Orders</h4>
+          <Link className="text-sm text-emerald-700 hover:text-emerald-800" to="/orders">
+            View all
+          </Link>
+        </div>
+        <div className="mt-4">
+          {loadingOrders ? (
+            <div className="space-y-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <SkeletonLine key={i} />
+              ))}
+            </div>
+          ) : ordersError ? (
+            <ErrorAlert message={ordersError} />
+          ) : orders.length === 0 ? (
+            <div className="text-sm text-gray-500 dark:text-gray-400">No recent orders.</div>
+          ) : (
+            <ul className="divide-y divide-gray-100 dark:divide-gray-700">
+              {orders
+                .slice()
+                .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+                .slice(0, 5)
+                .map((o) => (
+                  <li key={o.id} className="py-3 flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex items-center justify-center text-xs font-semibold">
+                      #{o.id}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm text-gray-800 dark:text-gray-100 truncate">₹{o.total}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0">
+                          {new Date(o.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {Array.isArray(o.items) ? `${o.items.length} item(s)` : "—"}
+                      </div>
+                    </div>
+                    <Badge tone={statusTone(o.status)}>{o.status}</Badge>
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      </div>
     </div>
-  );
+  </div>
+);
+
 }

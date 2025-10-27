@@ -30,6 +30,8 @@ import {
  *  - expanded submenu state persisted in localStorage
  *  - collapse (compact) mode still shows icons & tooltips
  *  - fetches badge counts from /admin/sidebar/counts (if available)
+ *
+ * Dark mode: uses tailwind `dark:` classes. Ensure `darkMode: 'class'` in tailwind.config.js
  */
 
 export default function MasterAdminSidebar() {
@@ -88,7 +90,7 @@ export default function MasterAdminSidebar() {
         icon: FiShoppingBag,
         children: [
           { to: "/master-admin/orders", label: "All orders", icon: FiList },
-          { to: "/master-admin/orders/movement", label: "Movement", icon: FiList },
+          // { to: "/master-admin/orders/movement", label: "Movement", icon: FiList },
         ],
       },
       {
@@ -107,7 +109,7 @@ export default function MasterAdminSidebar() {
         children: [
           { to: "/master-admin/customers", label: "All Users", icon: FiUsers },
           { to: "/master-admin/customers/add-limits", label: "Add Limits", icon: FiUsers },
-          // { to: "/master-admin/customers/loyalty", label: "Loyalty", icon: FiUsers },
+          { to: "/master-admin/attandance", label: "Attendance", icon: FiUsers },
         ],
       },
       { to: "/master-admin/profile", label: "Profile", icon: FiUsers },
@@ -129,7 +131,7 @@ export default function MasterAdminSidebar() {
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white border-r border-gray-100 shadow-xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 shadow-xl">
             <SidebarInner
               collapsed={false}
               onToggleCollapse={toggleCollapse}
@@ -147,7 +149,7 @@ export default function MasterAdminSidebar() {
 
       {/* Desktop */}
       <aside
-        className={`hidden md:flex flex-col bg-white border-r border-gray-100 transition-all duration-200 shadow-sm
+        className={`hidden md:flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-all duration-200 shadow-sm
         ${collapsed ? "w-20" : "w-72"} h-screen sticky top-0`}
       >
         <SidebarInner
@@ -166,7 +168,7 @@ export default function MasterAdminSidebar() {
       <div className="md:hidden fixed top-4 left-4 z-30">
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg bg-white shadow text-gray-700 hover:bg-gray-100 transition"
+          className="p-2 rounded-lg bg-white dark:bg-gray-800 shadow text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
           aria-label="Open menu"
           type="button"
         >
@@ -221,14 +223,11 @@ function SidebarInner({
     let mounted = true;
     (async () => {
       try {
-        // Change this endpoint to whatever your backend provides for sidebar counts
         const res = await authFetch("/admin/sidebar/counts", { method: "GET" });
         if (!mounted) return;
-        // expect shape: { orders_pending: 5, returns: 2, ... } — adapt in UI below
         if (res && typeof res === "object") setBadges(res);
       } catch (err) {
         // ignore: graceful fallback to no badges
-        // console.debug("sidebar badge fetch failed", err);
       }
     })();
     return () => {
@@ -253,7 +252,6 @@ function SidebarInner({
 
   useEffect(() => {
     rebuildFocusable();
-    // rebuild on window resize (submenu show/hide)
     const ro = new ResizeObserver(() => rebuildFocusable());
     if (containerRef.current) ro.observe(containerRef.current);
     window.addEventListener("resize", rebuildFocusable);
@@ -272,7 +270,6 @@ function SidebarInner({
   }
 
   function handleKeyDown(e) {
-    // only handle when focus is inside sidebar
     if (!containerRef.current || !containerRef.current.contains(document.activeElement)) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -290,7 +287,6 @@ function SidebarInner({
       if (submenuBtn) submenuBtn.click();
     } else if (e.key === "ArrowLeft") {
       e.preventDefault();
-      // find closest expanded parent and collapse
       const node = focusable.current[currentIndex.current];
       if (!node) return;
       const parentKey = node.getAttribute("data-parent-key");
@@ -314,27 +310,27 @@ function SidebarInner({
   }, [expanded]);
 
   return (
-    <div className="h-full flex flex-col" ref={containerRef}>
+    <div className="h-full flex flex-col text-gray-800 dark:text-gray-200" ref={containerRef}>
       {/* Header */}
-      <div className={`flex items-center gap-3 px-4 py-4 border-b border-gray-100 ${compact ? "justify-center" : ""}`}>
-        <div className="bg-gradient-to-br from-white to-white text-white rounded-lg p-2">
-  <img src={Logo} alt="Logo" className="h-6 w-auto" />
-</div>
+      <div className={`flex items-center gap-3 px-4 py-4 border-b border-gray-100 dark:border-gray-800 ${compact ? "justify-center" : ""}`}>
+        <div className="rounded-lg p-2 bg-white dark:bg-gray-900">
+          <img src={Logo} alt="Logo" className="h-6 w-auto" />
+        </div>
         {!compact && (
           <div>
-            <div className="text-sm font-semibold text-gray-900">Master Admin</div>
-            <div className="text-xs text-gray-500">Sri Gopal Traders</div>
+            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Master Admin</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">Sri Gopal Traders</div>
           </div>
         )}
 
         <div className="ml-auto">
           <button
             onClick={onToggleCollapse}
-            className="p-1 rounded-md hover:bg-gray-100 transition"
+            className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
             aria-label={compact ? "Expand sidebar" : "Collapse sidebar"}
             type="button"
           >
-            <FiChevronLeft className={`w-4 h-4 text-gray-600 ${compact ? "rotate-180" : ""}`} />
+            <FiChevronLeft className={`w-4 h-4 text-gray-600 dark:text-gray-300 ${compact ? "rotate-180" : ""}`} />
           </button>
         </div>
       </div>
@@ -342,17 +338,15 @@ function SidebarInner({
       {/* Nav */}
       <nav className="px-2 py-4 flex-1 overflow-y-auto">
         <div className="space-y-1">
-          {nav.map((item, idx) => {
+          {nav.map((item) => {
             const hasChildren = Array.isArray(item.children) && item.children.length > 0;
             const active =
               locationPath === item.to ||
               (hasChildren && item.children.some((c) => locationPath === c.to || locationPath.startsWith(c.to + "/")));
             const isExpanded = !!expanded[item.to];
 
-            // derive badge text from badges object (best-effort)
             let badgeText = null;
             if (item.to.includes("orders")) {
-              // map a few common badge keys
               badgeText = badges?.orders_pending ?? badges?.orders ?? null;
             }
             if (item.to.includes("customers")) {
@@ -376,7 +370,6 @@ function SidebarInner({
                     collapsed={compact}
                     onClick={() => {
                       if (onCloseMobile) onCloseMobile();
-                      // after clicking a link, rebuild focusable nodes
                       setTimeout(() => rebuildFocusableIfNeeded());
                     }}
                     badge={badgeText}
@@ -387,7 +380,7 @@ function SidebarInner({
                       data-submenu-toggle="1"
                       onClick={() => toggleMenu(item.to)}
                       aria-expanded={isExpanded}
-                      className={`ml-1 p-1 rounded ${compact ? "hidden" : "inline-flex"} items-center justify-center text-gray-400 hover:text-gray-600`}
+                      className={`ml-1 p-1 rounded ${compact ? "hidden" : "inline-flex"} items-center justify-center text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200`}
                       type="button"
                       title={isExpanded ? "Collapse" : "Expand"}
                     >
@@ -422,8 +415,8 @@ function SidebarInner({
           })}
         </div>
 
-        <div className={`mt-6 pt-4 border-t border-gray-100 ${compact ? "px-1" : "px-2"}`}>
-          {!compact && <div className="text-xs font-semibold text-gray-400 uppercase px-2 mb-2">Quick Links</div>}
+        <div className={`mt-6 pt-4 border-t border-gray-100 dark:border-gray-800 ${compact ? "px-1" : "px-2"}`}>
+          {!compact && <div className="text-xs font-semibold text-gray-400 dark:text-gray-400 uppercase px-2 mb-2">Quick Links</div>}
           <div className="space-y-1">
             {quick.map((q) => (
               <div key={q.to} data-side-focus="1" tabIndex={-1}>
@@ -445,14 +438,14 @@ function SidebarInner({
       </nav>
 
       {/* Footer */}
-      <div className={`px-3 py-4 border-t border-gray-100 ${compact ? "flex items-center justify-center" : ""}`}>
+      <div className={`px-3 py-4 border-t border-gray-100 dark:border-gray-800 ${compact ? "flex items-center justify-center" : ""}`}>
         {user ? (
           <div className={`flex items-center gap-3 w-full ${compact ? "justify-center" : "justify-between"}`}>
             <div className="flex items-center gap-3">
               {!compact && (
                 <div className="truncate">
-                  <div className="text-sm font-semibold text-gray-900 truncate">{user.name}</div>
-                  <div className="text-xs text-gray-500 truncate">{user.email}</div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{user.name}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.email}</div>
                 </div>
               )}
             </div>
@@ -462,7 +455,7 @@ function SidebarInner({
                   if (onCloseMobile) onCloseMobile();
                   onLogout(true);
                 }}
-                className="px-3 py-1.5 border rounded-md text-sm text-red-600 hover:bg-red-50 transition"
+                className="px-3 py-1.5 border rounded-md text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
                 type="button"
               >
                 <FiLogOut className="inline w-4 h-4 mr-1" /> Logout
@@ -474,11 +467,11 @@ function SidebarInner({
                   onLogout(true);
                 }}
                 title="Logout"
-                className="p-2 rounded-md hover:bg-gray-100 transition"
+                className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition"
                 aria-label="Logout"
                 type="button"
               >
-                <FiLogOut className="h-4 w-4 text-red-600" />
+                <FiLogOut className="h-4 w-4 text-red-600 dark:text-red-400" />
               </button>
             )}
           </div>
@@ -499,7 +492,6 @@ function SidebarInner({
       const root = containerRef.current;
       if (!root) return;
       const nodes = Array.from(root.querySelectorAll("[data-side-focus='1']"));
-      // if length differs, set currentIndex to 0 for safety
       if (nodes.length && currentIndex.current === -1) {
         currentIndex.current = 0;
         nodes[0].focus?.();
@@ -518,9 +510,12 @@ function NavItem({ to, label, Icon, active = false, collapsed = false, onClick, 
       title={collapsed ? label : undefined}
       aria-current={active ? "page" : undefined}
       className={`group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors
-        ${active ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700" : "text-gray-700 hover:bg-gray-50"}`}
+        ${active
+          ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 dark:from-indigo-900/30 dark:to-blue-900/30 dark:text-indigo-300"
+          : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+        }`}
     >
-      <div className={`flex items-center justify-center h-9 w-9 rounded-md ${active ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-600 group-hover:bg-gray-200"}`}>
+      <div className={`flex items-center justify-center h-9 w-9 rounded-md ${active ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300" : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 group-hover:bg-gray-200 dark:group-hover:bg-gray-700"}`}>
         <Icon className="w-5 h-5" />
       </div>
 
@@ -543,10 +538,10 @@ function SubNavItem({ to, label, Icon, active = false, onClick }) {
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
+      className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors ${active ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-300" : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"}`}
       aria-current={active ? "page" : undefined}
     >
-      <div className="flex items-center justify-center h-7 w-7 rounded-md bg-gray-100 text-gray-600">
+      <div className="flex items-center justify-center h-7 w-7 rounded-md bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
         <Icon className="w-4 h-4" />
       </div>
       <span className="truncate text-sm">{label}</span>

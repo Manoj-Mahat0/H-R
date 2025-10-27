@@ -1,10 +1,7 @@
-// src/pages/vendor/Orders.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import VendorSidebar from "../../components/VendorSidebar";
 import { authFetch } from "../../lib/auth";
 import { useToast } from "../../components/Toast";
-
-const API_UPLOADS = "http://127.0.0.1:8000";
 
 function fmtINR(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN")}`;
@@ -26,13 +23,22 @@ export default function VendorOrders() {
   const [shippingAddress, setShippingAddress] = useState("");
   const [notes, setNotes] = useState("");
 
-  // debounce search for better UX
+  // controlled qty map
+  const [qtyMap, setQtyMap] = useState({});
+  function setQtyFor(id, v) {
+    const n = Math.max(1, Number(v) || 1);
+    setQtyMap((s) => ({ ...s, [id]: n }));
+  }
+  function qtyFor(id) {
+    return qtyMap[id] ?? 1;
+  }
+
+  // debounce search
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 300);
     return () => clearTimeout(t);
   }, [query]);
 
-  // load products
   useEffect(() => {
     let mounted = true;
     async function load() {
@@ -102,25 +108,19 @@ export default function VendorOrders() {
 
   const totals = useMemo(() => {
     const subtotal = cartItems.reduce((s, it) => s + (Number(it.product.price) || 0) * Number(it.qty || 0), 0);
-    const gst = Math.round(subtotal * 0.18); // example 18% GST
+    const gst = Math.round(subtotal * 0);
     const total = subtotal + gst;
     return { subtotal, gst, total };
   }, [cartItems]);
 
-  // async wrapper for adding with per-button state
   async function handleAddToCart(product, qty = 1) {
     setAddingMap((m) => ({ ...m, [product.id]: true }));
     try {
-      // Example: optimistic UI + optional server call
       addToCartLocal(product, qty);
-
-      // If you want to inform server about cart-add, uncomment and edit below:
-      // await authFetch('/cart/add/', { method: 'POST', body: JSON.stringify({ product_id: product.id, qty }), headers: { 'Content-Type': 'application/json' } });
-
       toast(`${product.name} added`, "success");
     } catch (err) {
-      console.error('add to cart failed', err);
-      toast('Failed to add item', 'error');
+      console.error("add to cart failed", err);
+      toast("Failed to add item", "error");
     } finally {
       setAddingMap((m) => {
         const copy = { ...m };
@@ -130,39 +130,41 @@ export default function VendorOrders() {
     }
   }
 
-  // place order
   async function placeOrder() {
-    if (cartItems.length === 0) return toast('Cart is empty', 'error');
-    if (!shippingAddress || !shippingAddress.trim()) return toast('Please enter a shipping address', 'error');
+    if (cartItems.length === 0) return toast("Cart is empty", "error");
+    if (!shippingAddress || !shippingAddress.trim()) return toast("Please enter a shipping address", "error");
 
     const items = cartItems.map((it) => ({ product_id: it.product.id, qty: Number(it.qty), unit_price: Number(it.product.price) || 0 }));
     const payload = { items, shipping_address: shippingAddress, notes: notes || "" };
 
     try {
       setPlacing(true);
-      const res = await authFetch('/orders/', { method: 'POST', body: JSON.stringify(payload), headers: { 'Content-Type': 'application/json' } });
-      toast('Order placed', 'success');
+      const res = await authFetch("/new-orders/", { method: "POST", body: JSON.stringify(payload), headers: { "Content-Type": "application/json" } });
+      toast("Order placed", "success");
       setCartMap({});
-      setShippingAddress('');
-      setNotes('');
-      if (res?.id) toast(`Order #${res.id} created`, 'success');
+      setShippingAddress("");
+      setNotes("");
+      if (res?.id) toast(`Order #${res.id} created`, "success");
     } catch (err) {
-      console.error('place order err', err);
-      toast('Failed to place order', 'error');
+      console.error("place order err", err);
+      toast("Failed to place order", "error");
     } finally {
       setPlacing(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex">
+      {/* Page background: adapt to dark/light and keep consistent spacing */}
+      <div className="fixed inset-0 pointer-events-none bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 transition-colors" aria-hidden />
+
       <VendorSidebar />
 
-      <main className="flex-1 p-6 md:p-8">
-        <div className="flex items-center justify-between">
+      <main className="flex-1 p-6 md:p-10 relative z-10">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create Coustomer Order</h1>
-            <p className="text-sm text-gray-600 mt-1">Pick items, adjust quantities, and place an order.</p>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">Create Customer Order</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Modern, compact, and mobile-friendly ordering experience.</p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -171,184 +173,160 @@ export default function VendorOrders() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search products by name or SKU"
-                className="px-3 py-2 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-indigo-500 w-72"
+                className="px-4 py-2 rounded-2xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 w-80 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:focus:ring-indigo-600 text-slate-900 dark:text-slate-100"
               />
               {debouncedQuery && (
-                <button onClick={() => setQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-sm">✕</button>
+                <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">✕</button>
               )}
             </div>
 
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-200 bg-white"
+              className="px-4 py-2 rounded-2xl border border-slate-200 bg-white shadow-sm dark:bg-slate-800 dark:border-slate-700 text-slate-900 dark:text-slate-100"
             >
               <option value="">All categories</option>
               {categories.map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
-
-            <div className="text-sm text-gray-600">{products.length} products</div>
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* product list */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* left: product list */}
+          <div className="lg:pr-4">
+            <div className="space-y-4">
               {loadingProducts ? (
-                <div className="col-span-full text-center py-12">Loading products…</div>
+                <div className="p-8 text-center text-slate-500 dark:text-slate-400">Loading products…</div>
               ) : filtered.length === 0 ? (
-                <div className="col-span-full text-center py-12 text-sm text-gray-500">No products found.</div>
+                <div className="p-8 text-center text-slate-500 dark:text-slate-400">No products found</div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filtered.map((p) => (
-                    <div key={p.id} className="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition-shadow">
-                      <div className="h-40 w-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                        {p.image_url ? (
-                          <img src={`${API_UPLOADS}${p.image_url}`} alt={p.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="text-sm text-gray-400">No image</div>
-                        )}
-                      </div>
-
-                      <div className="p-3">
-                        <div className="flex items-start justify-between gap-3">
+                filtered.map((p) => (
+                  <article key={p.id} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition border border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
                           <div>
-                            <div className="text-sm font-semibold text-gray-900 line-clamp-2">{p.name}</div>
-                            <div className="text-xs text-gray-500 mt-1">{p.sku} • {p.category}</div>
+                            <div className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100">{p.name}</div>
+                            <div className="text-xs text-slate-400 dark:text-slate-400 mt-1">{p.sku}</div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold">{fmtINR(p.price)}</div>
-                            <div className="text-xs text-gray-400">/ unit</div>
+
+                          <div className="hidden sm:flex flex-wrap gap-1">
+                            {(p.category || '').split(',').filter(Boolean).slice(0, 3).map((cat) => (
+                              <span key={cat} className="inline-block text-xs font-medium px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300">{cat.trim()}</span>
+                            ))}
                           </div>
                         </div>
 
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const el = document.getElementById(`qty-${p.id}`);
-                                const curr = el ? Number(el.value) || 1 : 1;
-                                const next = Math.max(1, curr - 1);
-                                if (el) el.value = next; else {};
-                              }}
-                              className="px-2 py-1 border rounded"
-                            >-</button>
+                        {p.description ? (
+                          <div className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-2">{p.description}</div>
+                        ) : null}
+                      </div>
 
-                            <input id={`qty-${p.id}`} type="number" min="1" defaultValue={1} className="w-16 px-2 py-1 rounded border text-sm text-center" />
+                      <div className="flex items-center gap-3">
+                        <div className="text-right w-20">
+                          <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{fmtINR(p.price)}</div>
+                        </div>
 
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const el = document.getElementById(`qty-${p.id}`);
-                                const curr = el ? Number(el.value) || 1 : 1;
-                                const next = curr + 1;
-                                if (el) el.value = next;
-                              }}
-                              className="px-2 py-1 border rounded"
-                            >+</button>
-                          </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <label htmlFor={`qty-${p.id}`} className="sr-only">Quantity for {p.name}</label>
+                          <input
+                            id={`qty-${p.id}`}
+                            type="number"
+                            min="1"
+                            value={qtyFor(p.id)}
+                            onChange={(e) => setQtyFor(p.id, e.target.value)}
+                            className="w-12 px-2 py-1 rounded-lg border text-xs text-center bg-white dark:bg-slate-700 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+                          />
+                        </div>
 
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const el = document.getElementById(`qty-${p.id}`);
-                                const qty = el ? Number(el.value) || 1 : 1;
-                                await handleAddToCart(p, qty);
-                              }}
-                              disabled={!!addingMap[p.id]}
-                              className="px-3 py-1 rounded-md bg-indigo-600 text-white text-sm hover:bg-indigo-700 disabled:opacity-60"
-                            >
-                              {addingMap[p.id] ? 'Adding...' : 'Add'}
-                            </button>
-                          </div>
+                        <div className="pl-2">
+                          <button
+                            onClick={async () => {
+                              const qty = qtyFor(p.id);
+                              await handleAddToCart(p, qty);
+                            }}
+                            disabled={!!addingMap[p.id]}
+                            className="px-3 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 text-white text-sm shadow hover:from-indigo-700 hover:to-indigo-600 disabled:opacity-60"
+                          >
+                            Add
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </article>
+                ))
               )}
             </div>
           </div>
 
-          {/* cart panel */}
-          <div>
-            <div className="bg-white rounded-lg shadow-sm p-4 sticky top-6">
+          {/* right: cart */}
+          <aside className="lg:pl-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg sticky top-6 border border-slate-100 dark:border-slate-700">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">Cart</div>
-                  <div className="text-xs text-gray-500">{cartItems.length} items</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">Cart</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-400">{cartItems.length} items</div>
                 </div>
-                <div className="text-lg font-bold">{fmtINR(totals.total)}</div>
+
+                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{fmtINR(totals.total)}</div>
               </div>
 
-              <div className="mt-4 max-h-64 overflow-auto space-y-3">
+              <div className="mt-4 space-y-3 max-h-[60vh] overflow-auto">
                 {cartItems.length === 0 ? (
-                  <div className="text-sm text-gray-500">No items in cart.</div>
+                  <div className="text-center py-8 text-slate-400 dark:text-slate-500">
+                    <div className="text-sm font-medium">Your cart is empty</div>
+                    <div className="text-xs mt-2">Search and add items to start an order</div>
+                  </div>
                 ) : (
                   cartItems.map((it) => (
-                    <div key={it.product.id} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded overflow-hidden bg-gray-100">
-                          {it.product.image_url ? (
-                            <img src={`${API_UPLOADS}${it.product.image_url}`} alt={it.product.name} className="h-full w-full object-cover" />
-                          ) : null}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{it.product.name}</div>
-                          <div className="text-xs text-gray-500">{fmtINR(it.product.price)} • {it.product.sku}</div>
-                        </div>
+                    <div key={it.product.id} className="flex items-start gap-3 p-3 border rounded-xl bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-700">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate text-slate-900 dark:text-slate-100">{it.product.name}</div>
+                        <div className="text-xs text-slate-400 dark:text-slate-400">{fmtINR(it.product.price)} • {it.product.sku}</div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => updateQty(it.product.id, Number(it.qty) - 1)} className="px-2 py-1 border rounded">-</button>
-                        <input type="number" min="1" value={it.qty} onChange={(e) => updateQty(it.product.id, Number(e.target.value) || 1)} className="w-16 px-2 py-1 rounded border text-sm text-center" />
-                        <button onClick={() => updateQty(it.product.id, Number(it.qty) + 1)} className="px-2 py-1 border rounded">+</button>
-                        <button type="button" onClick={() => removeFromCart(it.product.id)} className="text-xs text-red-600">Remove</button>
+                      <div className="flex flex-col items-center gap-2">
+                        <input type="number" min="1" value={it.qty} onChange={(e) => updateQty(it.product.id, Number(e.target.value) || 1)} className="w-12 px-2 py-1 rounded-lg border text-sm text-center bg-white dark:bg-slate-800 dark:border-slate-700 text-slate-900 dark:text-slate-100" />
+                      </div>
+
+                      <div className="flex flex-col items-end gap-2">
+                        <button onClick={() => removeFromCart(it.product.id)} className="text-xs text-red-600 dark:text-red-400">Remove</button>
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{fmtINR((Number(it.product.price)||0)*Number(it.qty))}</div>
                       </div>
                     </div>
                   ))
                 )}
               </div>
 
-              <div className="mt-4 border-t pt-3 text-sm text-gray-700 space-y-2">
-                <div className="flex items-center justify-between"><span>Subtotal</span><span>{fmtINR(totals.subtotal)}</span></div>
-                <div className="flex items-center justify-between"><span>GST (18%)</span><span>{fmtINR(totals.gst)}</span></div>
-                <div className="flex items-center justify-between font-semibold text-gray-900"><span>Total</span><span>{fmtINR(totals.total)}</span></div>
-              </div>
-
-              <div className="mt-4">
-                <label className="block text-xs text-gray-600">Shipping address</label>
+              <div className="mt-2">
+                <label className="block text-xs text-slate-500 dark:text-slate-400">Shipping address</label>
                 <input
                   type="text"
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="Enter shipping address"
-                  className="mt-1 w-full px-3 py-2 rounded border border-gray-200 text-sm"
+                  placeholder="House, Street, City"
+                  className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"
                 />
               </div>
 
-              <div className="mt-3">
-                <label className="block text-xs text-gray-600">Notes (optional)</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any notes for this order" rows={3} className="mt-1 w-full px-3 py-2 rounded border border-gray-200 text-sm" />
+              <div className="mt-2">
+                <label className="block text-xs text-slate-500 dark:text-slate-400">Notes (optional)</label>
+                <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any notes for this order" className="mt-1 w-full px-3 py-1 rounded-xl border border-slate-200 text-sm dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100" />
               </div>
 
               <div className="mt-4 flex gap-2">
-                <button type="button" onClick={placeOrder} disabled={placing || cartItems.length === 0} className="flex-1 px-3 py-2 rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60">{placing ? 'Placing...' : 'Place order'}</button>
-                <button type="button" onClick={() => { if (cartItems.length === 0) return; if (confirm('Clear cart?')) setCartMap({}); }} className="px-3 py-2 rounded-md bg-white border">Clear</button>
+                <button type="button" onClick={placeOrder} disabled={placing || cartItems.length === 0} className="flex-1 px-4 py-2 rounded-2xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-60">
+                  {placing ? 'Placing...' : 'Place order'}
+                </button>
+                <button type="button" onClick={() => { if (cartItems.length === 0) return; if (confirm('Clear cart?')) { setCartMap({}); setQtyMap({}); } }} className="px-4 py-2 rounded-2xl bg-white border dark:bg-slate-800 dark:border-slate-700">
+                  Clear
+                </button>
               </div>
 
-              <div className="mt-3 text-xs text-gray-500">Tip: use + / - to adjust quantity quickly.</div>
             </div>
-
-            <div className="mt-4 text-sm text-gray-500">
-              <p>Images served from backend at <code className="text-xs bg-gray-100 px-1 rounded">http://127.0.0.1:8000/uploads/...</code></p>
-            </div>
-          </div>
+          </aside>
         </div>
       </main>
     </div>

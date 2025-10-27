@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from .database import init_db
-from .routers import users, products, vendors, stock, purchases, reports, auth_extra, categories, tags, invoice, orders, chat, purchase_orders, profile, vehicles, vendor_limits, new_orders, products_with_stock
+from .routers import users, products, vendors, stock, purchases, reports, auth_extra, categories, tags, invoice, orders, chat, purchase_orders, profile, vehicles, vendor_limits, new_orders, products_with_stock, attendance
 from .config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +41,7 @@ app.include_router(vehicles.router)
 app.include_router(vendor_limits.router)
 app.include_router(new_orders.router)
 app.include_router(products_with_stock.router)
+app.include_router(attendance.router)
 
 
 UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")

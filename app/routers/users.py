@@ -21,7 +21,7 @@ def create_user(payload: UserCreate, session: Session = Depends(get_session)):
     session.refresh(user)
     return user
 
-@router.get("/", response_model=list[UserRead], dependencies=[Depends(require_roles(Role.MASTER, Role.ADMIN))])
+@router.get("/", response_model=list[UserRead], dependencies=[Depends(require_roles(Role.MASTER, Role.ADMIN, Role.STAFF, Role.ACCOUNTANT, Role.VENDOR, Role.SECURITY))])
 def list_users(session: Session = Depends(get_session)):
     stmt = select(User)
     users = session.exec(stmt).all()

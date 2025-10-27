@@ -4,15 +4,16 @@ import AccountantSidebar from "../../components/AccountantSidebar";
 import { getToken } from "../../lib/auth"; // read token directly (we call the exact URL)
 import { useToast } from "../../components/Toast";
 import { FiRefreshCw, FiSearch, FiDownload, FiEye } from "react-icons/fi";
+import { API_URL } from '../../lib/config.js';
 
 /**
  * Transactions page — ONLY uses:
- * GET http://127.0.0.1:8000/purchase-orders/admin/pending/verify?limit=100
+ * GET ${API_URL}/purchase-orders/admin/pending/verify?limit=100
  *
  * No other API calls are made.
  */
 
-const API_ENDPOINT = "http://127.0.0.1:8000/purchase-orders/admin/pending/verify?limit=100";
+const API_ENDPOINT = `${API_URL}/purchase-orders/admin/pending/verify?limit=100`;
 
 function fmtDate(ts) {
   if (!ts) return "-";

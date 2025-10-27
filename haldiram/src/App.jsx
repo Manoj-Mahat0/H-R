@@ -45,6 +45,23 @@ import MasterVendorLimits from "./pages/master-admin/CustomerLimits";
 import MasterOrdersMovement from "./pages/master-admin/MasterOrdersMovement";
 import MasterOrdersMovementDetails from "./pages/master-admin/MasterOrdersMovementDetails";
 import EditOrderItems from "./pages/master-admin/EditOrderItems";
+import OrderDetail from "./pages/staff/OrderDetail";
+import AccountantReports from "./pages/accountant/Reports";
+import MasterAdminAttendance from "./pages/master-admin/MasterAdminAttendance";
+import MasterAdminAttendanceDay from "./pages/master-admin/MasterAdminAttendanceDay";
+import FloatingAttendance from "./components/FloatingAttendance";
+import SecurityDashboard from "./security/SecurityDashboard";
+import SecurityAttendanceDay from "./security/SecurityAttendanceDay";
+import DriverProfile from "./pages/driver/Profile";
+import AdminStock from "./pages/admin/Stock";
+import AdminOrdersMovement from "./pages/admin/AdminOrdersMovement";
+import AdminOrdersMovementDetails from "./pages/admin/AdminOrdersMovementDetails";
+import AdminEditOrderItems from "./pages/admin/AdminEditOrderItems";
+import AdminVehicles from "./pages/admin/AdminVehicles";
+import AdminAddVehicles from "./pages/admin/AdminAddVehicles";
+import AdminCustomerLimits from "./pages/admin/AdminCustomerLimits";
+import AdminAttendance from "./pages/admin/AdminAttendance";
+import AdminAttendanceDay from "./pages/admin/AdminAttendanceDay";
 import NotFound from "./pages/NotFound";
 
 export default function App() {
@@ -58,6 +75,7 @@ export default function App() {
     <>
       {shouldShowNavbar && <Header />}
       {/* Floating Chat is always available */}
+      <FloatingAttendance />
       <FloatingChat />
       <Routes>
         {/* ...existing routes... */}
@@ -100,7 +118,22 @@ export default function App() {
           <Route path="/master-admin/orders/movement/:id" element={<ProtectedRoute><MasterOrdersMovementDetails /> </ProtectedRoute>} />
           <Route path="/master-admin/orders/:id/edit-items" element={<ProtectedRoute><EditOrderItems /> </ProtectedRoute>} />
                 <Route path="/accountant/transactions" element={<ProtectedRoute><AccountantTransactions /> </ProtectedRoute>} />
-
+        <Route path="/staff/orders/:id" element={<ProtectedRoute><OrderDetail /> </ProtectedRoute>} />
+        <Route path="/accountant/reports" element={<ProtectedRoute><AccountantReports /> </ProtectedRoute>} />
+<Route path="/master-admin/attandance" element={<ProtectedRoute><MasterAdminAttendance /> </ProtectedRoute>} />
+<Route path="/master-admin/attendance/:day" element={<ProtectedRoute><MasterAdminAttendanceDay /> </ProtectedRoute>} />
+        <Route path="/security/dashboard" element={<ProtectedRoute><SecurityDashboard /> </ProtectedRoute>} />
+        <Route path="/security/attendance/:day" element={<ProtectedRoute><SecurityAttendanceDay /> </ProtectedRoute>} />
+        <Route path="/driver/profile" element={<ProtectedRoute><DriverProfile /> </ProtectedRoute>} />
+        <Route path="/admin/stock" element={<ProtectedRoute><AdminStock /> </ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrdersMovement /> </ProtectedRoute>} />
+        <Route path="/admin/orders/movement/:id" element={<ProtectedRoute><AdminOrdersMovementDetails /> </ProtectedRoute>} />
+        <Route path="/admin/orders/:id/edit-items" element={<ProtectedRoute><AdminEditOrderItems /> </ProtectedRoute>} />
+        <Route path="/admin/vehicles" element={<ProtectedRoute><AdminVehicles /> </ProtectedRoute>} />
+        <Route path="/admin/vehicles/add" element={<ProtectedRoute><AdminAddVehicles /> </ProtectedRoute>} />
+        <Route path="/admin/customers/add-limits" element={<ProtectedRoute><AdminCustomerLimits /> </ProtectedRoute>} />
+        <Route path="/admin/attandance" element={<ProtectedRoute><AdminAttendance /> </ProtectedRoute>} />
+        <Route path="/admin/attendance/:day" element={<ProtectedRoute><AdminAttendanceDay /> </ProtectedRoute>} />
   {/* <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} /> Chat route removed, floating chat is always available */}
           <Route path="*" element={<NotFound />} />
 

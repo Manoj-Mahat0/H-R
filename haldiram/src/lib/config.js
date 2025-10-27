@@ -1,9 +1,17 @@
 // src/lib/config.js
 
-// API host (backend server URL)
-// You can override this in .env file using: VITE_API_HOST
-// export const API_HOST = "http://127.0.0.1:8000";
-export const API_HOST = "http://127.0.0.1:8000";
+// Determine the environment
+const isProduction = import.meta.env.PROD;
+const env = import.meta.env.VITE_ENV || (isProduction ? 'production' : 'staging');
+
+// API host (backend server URL) - configurable for different environments
+const API_HOSTS = {
+  production: "https://be.haldiram.globalinfosofts.com",
+  staging: "http://127.0.0.1:8000"
+};
+
+// Export the appropriate API host based on environment
+export const API_HOST = API_HOSTS[env] || API_HOSTS.staging;
 
 // Base path for your API
 export const API_BASE = "/api";

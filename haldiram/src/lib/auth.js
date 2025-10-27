@@ -1,13 +1,15 @@
 // src/lib/auth.js
-// const API_BASE = "http://127.0.0.1:8000/api";
-const API_BASE = "http://127.0.0.1:8000/api";
+import { API_URL } from './config.js';
+
 export function getToken() {
   return localStorage.getItem("access_token");
 }
+
 export function setToken(token) {
   if (token) localStorage.setItem("access_token", token);
   else localStorage.removeItem("access_token");
 }
+
 export function clearAuth() {
   localStorage.removeItem("access_token");
 }
@@ -19,7 +21,7 @@ export async function authFetch(path, opts = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
   headers["Content-Type"] = headers["Content-Type"] || "application/json";
 
-  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers });
+  const res = await fetch(`${API_URL}${path}`, { ...opts, headers });
   const text = await res.text();
   let data;
   try {
@@ -38,7 +40,7 @@ export async function authFetch(path, opts = {}) {
 
 // login: returns { access_token, token_type } on success
 export async function loginRequest(email, password) {
-  const res = await fetch(`${API_BASE}/auth/login`, {
+  const res = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),

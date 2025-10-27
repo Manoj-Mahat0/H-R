@@ -168,183 +168,187 @@ export default function MasterAdminCategories() {
   }, [items, query]);
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <MasterAdminSidebar />
+  <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
+    <MasterAdminSidebar />
 
-      <main className="flex-1 p-6 md:p-8">
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-50 rounded-lg p-3">
-              <IconCategory className="text-indigo-700" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-semibold text-gray-900">Categories</h2>
-              <p className="text-sm text-gray-600 mt-1">Manage product categories used in the catalog.</p>
-            </div>
+    <main className="flex-1 p-6 md:p-8">
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3">
+            <IconCategory className="text-indigo-700 dark:text-indigo-300" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Categories</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage product categories used in the catalog.</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search categories"
+              className="w-64 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-colors"
+              aria-label="Search categories"
+            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <button
+            onClick={openAdd}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-900 text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          >
+            <span className="inline-flex items-center p-1 rounded-full bg-white/10">
+              <IconPlus />
+            </span>
+            Add Category
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden transition-colors">
+        {/* header (desktop) */}
+        <div className="hidden md:grid grid-cols-[1fr_120px] items-center px-6 py-3 border-b border-gray-100 dark:border-gray-700 text-sm text-gray-500 dark:text-gray-300">
+          <div className="font-medium">Name</div>
+          <div className="text-right pr-4">Actions</div>
+        </div>
+
+        {/* content */}
+        <div>
+          {loading ? (
+            <div className="p-6 space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-20 rounded-lg bg-gray-50 dark:bg-gray-700 animate-pulse" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+              No categories found. Click{" "}
+              <button onClick={openAdd} className="text-indigo-600 dark:text-indigo-300 underline">Add Category</button> to create one.
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+              {filtered.map((c) => (
+                <div
+                  key={c.id}
+                  className="grid grid-cols-1 md:grid-cols-[1fr_120px] items-start md:items-center gap-3 px-4 md:px-6 py-4 bg-white dark:bg-gray-800"
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="flex-shrink-0">
+                      <div className="w-11 h-11 rounded-md bg-indigo-50 dark:bg-indigo-900/10 flex items-center justify-center">
+                        <IconCategory className="text-indigo-700 dark:text-indigo-300" />
+                      </div>
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">{c.name}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{c.description || "No description"}</div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => toast("View action — implement as needed", "info")}
+                      className="p-2 rounded-md bg-blue-50 dark:bg-blue-900/10 hover:bg-blue-100 dark:hover:bg-blue-900/20 focus:outline-none"
+                      aria-label={`View ${c.name}`}
+                    >
+                      <IconEye className="text-blue-600 dark:text-blue-300" />
+                    </button>
+
+                    <button
+                      onClick={() => openEdit(c)}
+                      className="p-2 rounded-md bg-yellow-50 dark:bg-yellow-900/10 hover:bg-yellow-100 dark:hover:bg-yellow-900/20 focus:outline-none"
+                      aria-label={`Edit ${c.name}`}
+                    >
+                      <IconEdit className="text-yellow-600 dark:text-yellow-300" />
+                    </button>
+
+                    <button
+                      onClick={() => setDeleteTarget(c)}
+                      className="p-2 rounded-md bg-red-50 dark:bg-red-900/10 hover:bg-red-100 dark:hover:bg-red-900/20 focus:outline-none"
+                      aria-label={`Delete ${c.name}`}
+                    >
+                      <IconTrash className="text-red-600 dark:text-red-300" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-3 text-sm text-gray-600 dark:text-gray-400">
+          Showing {filtered.length} of {items.length} categories
+        </div>
+      </div>
+    </main>
+
+    {/* Add / Edit modal */}
+    {showModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/30" onClick={() => setShowModal(false)} />
+        <form onSubmit={save} className="relative z-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-lg p-6 transition-colors">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editing ? "Edit category" : "Add category"}</h3>
+
+          <div className="mt-4 grid grid-cols-1 gap-4">
+            <div>
+              <label className="text-sm text-gray-600 dark:text-gray-300 block">Name</label>
               <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search categories"
-                className="w-64 px-3 py-2 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                aria-label="Search categories"
+                ref={inputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 w-full px-3 py-2 border rounded border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+                placeholder="e.g. Namkeen"
               />
             </div>
 
-            <button
-              onClick={openAdd}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-900 text-white hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <span className="inline-flex items-center p-1 rounded-full bg-white/10">
-                <IconPlus />
-              </span>
-              Add Category
+            <div>
+              <label className="text-sm text-gray-600 dark:text-gray-300 block">Description</label>
+              <textarea
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                className="mt-1 w-full px-3 py-2 border rounded border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+                rows="2"
+                placeholder="Optional description"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-md border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100" disabled={saving}>
+              Cancel
+            </button>
+            <button type="submit" className="px-4 py-2 rounded-md bg-indigo-900 text-white" disabled={saving}>
+              {saving ? (editing ? "Saving..." : "Creating...") : editing ? "Save" : "Create"}
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+
+    {/* Delete confirm modal */}
+    {deleteTarget && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/30" onClick={() => setDeleteTarget(null)} />
+        <div className="relative z-10 bg-white dark:bg-gray-800 rounded-lg shadow-lg w-full max-w-sm p-6 transition-colors">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete category</h3>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Are you sure you want to delete <span className="font-medium text-gray-900 dark:text-gray-100">{deleteTarget.name}</span>? This action cannot be undone.
+          </p>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={() => setDeleteTarget(null)} className="px-4 py-2 rounded-md border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100" disabled={deleting}>
+              Cancel
+            </button>
+            <button onClick={confirmDelete} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700" disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>
+      </div>
+    )}
+  </div>
+);
 
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          {/* header (desktop) */}
-          <div className="hidden md:grid grid-cols-[1fr_120px] items-center px-6 py-3 border-b border-gray-100 text-sm text-gray-500">
-            <div className="font-medium">Name</div>
-            <div className="text-right pr-4">Actions</div>
-          </div>
-
-          {/* content */}
-          <div>
-            {loading ? (
-              <div className="p-6 space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="h-20 rounded-lg bg-gray-50 animate-pulse" />
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                No categories found. Click{" "}
-                <button onClick={openAdd} className="text-indigo-600 underline">Add Category</button> to create one.
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100">
-                {filtered.map((c) => (
-                  <div key={c.id} className="grid grid-cols-1 md:grid-cols-[1fr_120px] items-start md:items-center gap-3 px-4 md:px-6 py-4">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0">
-                        <div className="w-11 h-11 rounded-md bg-indigo-50 flex items-center justify-center">
-                          <IconCategory className="text-indigo-700" />
-                        </div>
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold text-gray-900">{c.name}</div>
-                        <div className="text-xs text-gray-500 mt-1 truncate">{c.description || "No description"}</div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => toast("View action — implement as needed", "info")}
-                        className="p-2 rounded-md bg-blue-50 hover:bg-blue-100 focus:outline-none"
-                        aria-label={`View ${c.name}`}
-                      >
-                        <IconEye className="text-blue-600" />
-                      </button>
-
-                      <button
-                        onClick={() => openEdit(c)}
-                        className="p-2 rounded-md bg-yellow-50 hover:bg-yellow-100 focus:outline-none"
-                        aria-label={`Edit ${c.name}`}
-                      >
-                        <IconEdit className="text-yellow-600" />
-                      </button>
-
-                      <button
-                        onClick={() => setDeleteTarget(c)}
-                        className="p-2 rounded-md bg-red-50 hover:bg-red-100 focus:outline-none"
-                        aria-label={`Delete ${c.name}`}
-                      >
-                        <IconTrash className="text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 py-3 text-sm text-gray-600">
-            Showing {filtered.length} of {items.length} categories
-          </div>
-        </div>
-      </main>
-
-      {/* Add / Edit modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-30" onClick={() => setShowModal(false)} />
-          <form onSubmit={save} className="relative z-10 bg-white rounded-lg shadow-lg w-full max-w-lg p-6">
-            <h3 className="text-lg font-semibold">{editing ? "Edit category" : "Add category"}</h3>
-
-            <div className="mt-4 grid grid-cols-1 gap-4">
-              <div>
-                <label className="text-sm text-gray-600 block">Name</label>
-                <input
-                  ref={inputRef}
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  placeholder="e.g. Namkeen"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm text-gray-600 block">Description</label>
-                <textarea
-                  value={desc}
-                  onChange={(e) => setDesc(e.target.value)}
-                  className="mt-1 w-full px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  rows="2"
-                  placeholder="Optional description"
-                />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 rounded-md border bg-white" disabled={saving}>
-                Cancel
-              </button>
-              <button type="submit" className="px-4 py-2 rounded-md bg-indigo-900 text-white" disabled={saving}>
-                {saving ? (editing ? "Saving..." : "Creating...") : editing ? "Save" : "Create"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Delete confirm modal */}
-      {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black opacity-30" onClick={() => setDeleteTarget(null)} />
-          <div className="relative z-10 bg-white rounded-lg shadow-lg w-full max-w-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900">Delete category</h3>
-            <p className="mt-2 text-sm text-gray-600">
-              Are you sure you want to delete <span className="font-medium text-gray-900">{deleteTarget.name}</span>? This action cannot be undone.
-            </p>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={() => setDeleteTarget(null)} className="px-4 py-2 rounded-md border bg-white" disabled={deleting}>
-                Cancel
-              </button>
-              <button onClick={confirmDelete} className="px-4 py-2 rounded-md bg-red-600 text-white" disabled={deleting}>
-                {deleting ? "Deleting..." : "Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }

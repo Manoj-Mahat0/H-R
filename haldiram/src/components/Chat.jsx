@@ -131,16 +131,16 @@ export default function ChatFloating({ onClose }) {
   return (
     // Overlay
     <div
-      className="fixed inset-0 bg-black/20 z-50 flex items-end justify-end"
+      className="fixed inset-0 bg-black/20 dark:bg-black/40 z-50 flex items-end justify-end"
       onClick={onClose} // outside click → close
     >
       <div
-        className="w-[510px] max-w-[96vw] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="w-[510px] max-w-[96vw] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
         style={{ height: "82vh", maxHeight: "82vh" }}
         onClick={(e) => e.stopPropagation()} // prevent close on widget click
       >
         {/* HEADER */}
-        <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white">
+        <div className="flex items-center justify-between px-4 py-3 bg-blue-600 dark:bg-slate-900 text-white">
           <div className="flex items-center gap-2">
             <FiUser />
             <span className="font-semibold">Chat Support</span>
@@ -148,7 +148,7 @@ export default function ChatFloating({ onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-blue-700"
+            className="p-2 rounded-full hover:bg-blue-700 dark:hover:bg-slate-700"
           >
             <FiX />
           </button>
@@ -157,13 +157,13 @@ export default function ChatFloating({ onClose }) {
         <div className="flex flex-1 min-h-0">
           {/* Sidebar */}
           {!selectedUser && (
-            <div className="w-48 border-r flex flex-col">
+            <div className="w-48 border-r border-gray-100 dark:border-slate-700 flex flex-col bg-white dark:bg-slate-800">
               <div className="p-3">
                 <div className="relative">
                   <input
                     ref={searchRef}
                     placeholder="Search..."
-                    className="w-full rounded-full bg-gray-100 px-3 py-2 text-xs outline-none"
+                    className="w-full rounded-full bg-gray-100 dark:bg-slate-700 px-3 py-2 text-xs outline-none text-slate-900 dark:text-slate-100"
                   />
                   <FiSearch className="absolute right-3 top-3 text-gray-400 text-xs" />
                 </div>
@@ -173,14 +173,14 @@ export default function ChatFloating({ onClose }) {
                   <div
                     key={u.id}
                     onClick={() => setSelectedUser(u)}
-                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50"
+                    className="flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-700"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-sm">
-                      {u.name[0]}
+                    <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-slate-600 flex items-center justify-center text-sm text-slate-700 dark:text-slate-200">
+                      {u.name?.charAt(0) ?? "U"}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{u.name}</div>
-                      <div className="text-xs text-gray-400 truncate">Ok, let me check</div>
+                      <div className="text-sm font-medium truncate text-slate-900 dark:text-slate-100">{u.name}</div>
+                      <div className="text-xs text-gray-400 dark:text-slate-400 truncate">Ok, let me check</div>
                     </div>
                   </div>
                 ))}
@@ -189,27 +189,27 @@ export default function ChatFloating({ onClose }) {
           )}
 
           {/* Chat Area */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col bg-white dark:bg-slate-800">
             {/* Chat Header */}
             {selectedUser && (
-              <div className="flex items-center justify-between px-4 py-3 border-b">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleBackToList}
-                    className="p-2 rounded-full hover:bg-gray-100"
+                    className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700"
                   >
                     <FiArrowLeft />
                   </button>
-                  <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center">
-                    {selectedUser.name[0]}
+                  <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-100">
+                    {selectedUser.name?.charAt(0) ?? "U"}
                   </div>
                   <div>
-                    <div className="font-semibold text-sm">{selectedUser.name}</div>
-                    <div className="text-xs text-gray-400">Last seen recently</div>
+                    <div className="font-semibold text-sm text-slate-900 dark:text-slate-100">{selectedUser.name}</div>
+                    <div className="text-xs text-gray-400 dark:text-slate-400">Last seen recently</div>
                   </div>
                 </div>
-                <FiPhone />
+                <FiPhone className="text-slate-700 dark:text-slate-200" />
               </div>
             )}
 
@@ -219,13 +219,13 @@ export default function ChatFloating({ onClose }) {
               className="flex-1 overflow-y-auto p-4 min-h-0"
             >
               {!selectedUser ? (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-gray-400 dark:text-slate-400">
                   Select a user from the left
                 </div>
               ) : loading ? (
-                <div className="text-sm text-gray-400">Loading…</div>
+                <div className="text-sm text-gray-400 dark:text-slate-400">Loading…</div>
               ) : messages.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-gray-400 dark:text-slate-400">
                   No messages yet — say hi 👋
                 </div>
               ) : (
@@ -241,54 +241,28 @@ export default function ChatFloating({ onClose }) {
                           className={`px-3 py-2 rounded-2xl text-sm ${
                             mine
                               ? "bg-gradient-to-br from-purple-500 to-purple-400 text-white rounded-br-none"
-                              : "bg-gray-100 text-gray-800 rounded-bl-none"
+                              : "bg-gray-100 dark:bg-slate-700 text-gray-800 dark:text-slate-100 rounded-bl-none"
                           }`}
                           style={{ maxWidth: 320 }}
                         >
-                          {/* Show file attachment if present */}
-                          {m.file_url && m.file_type === "image" && (
-                            <a href={`${API_HOST}${m.file_url}`} target="_blank" rel="noopener noreferrer">
-                              <img
-                                src={`${API_HOST}${m.file_url}`}
-                                alt="attachment"
-                                className="rounded mb-1 max-h-40 max-w-full border"
-                                style={{ objectFit: "cover" }}
-                              />
-                            </a>
+                          {/* Do NOT render remote images/videos inline to avoid CORS/taint — render safe links */}
+                          {m.file_url && (
+                            <div className="mb-1">
+                              <a
+                                href={`${API_HOST}${m.file_url}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded border border-gray-200 dark:border-slate-700 text-sm"
+                              >
+                                <FiPaperclip />
+                                <span className="truncate">Open attachment</span>
+                              </a>
+                            </div>
                           )}
-                          {m.file_url && m.file_type === "video" && (
-                            <a href={`${API_HOST}${m.file_url}`} target="_blank" rel="noopener noreferrer">
-                              <video
-                                src={`${API_HOST}${m.file_url}`}
-                                controls
-                                className="rounded mb-1 max-h-40 max-w-full border"
-                                style={{ objectFit: "cover" }}
-                              />
-                            </a>
-                          )}
-                          {m.file_url && m.file_type === "pdf" && (
-                            <a
-                              href={`${API_HOST}${m.file_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-blue-600 underline mb-1"
-                            >
-                              PDF Attachment
-                            </a>
-                          )}
-                          {m.file_url && !["image", "video", "pdf"].includes(m.file_type) && (
-                            <a
-                              href={`${API_HOST}${m.file_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="block text-blue-600 underline mb-1"
-                            >
-                              File Attachment
-                            </a>
-                          )}
+
                           {/* Show text content if present */}
-                          {m.content && <div>{m.content}</div>}
-                          <div className="text-[10px] text-gray-400 mt-1">
+                          {m.content && <div className="text-slate-900 dark:text-slate-100">{m.content}</div>}
+                          <div className="text-[10px] text-gray-400 dark:text-slate-400 mt-1">
                             {formatTime(m.created_at)}
                           </div>
                         </div>
@@ -304,26 +278,26 @@ export default function ChatFloating({ onClose }) {
             {selectedUser && (
               <form
                 onSubmit={handleSend}
-                className="px-4 py-3 bg-white border-t flex items-center gap-2"
+                className="px-4 py-3 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700 flex items-center gap-2"
               >
-                <label className="p-2 rounded-full hover:bg-gray-100 cursor-pointer">
+                <label className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-700 cursor-pointer">
                   <input
                     type="file"
                     className="hidden"
                     onChange={(e) => e.target.files?.[0] && setFile(e.target.files[0])}
                   />
-                  <FiPaperclip size={18} className="text-gray-600" />
+                  <FiPaperclip size={18} className="text-gray-600 dark:text-slate-200" />
                 </label>
                 <input
                   type="text"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Write a message..."
-                  className="flex-1 px-4 py-2 rounded-full bg-gray-100 outline-none text-sm"
+                  className="flex-1 px-4 py-2 rounded-full bg-gray-100 dark:bg-slate-700 outline-none text-sm text-slate-900 dark:text-slate-100"
                 />
                 <button
                   type="submit"
-                  className="w-11 h-11 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow"
+                  className="w-11 h-11 rounded-full bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center shadow focus:outline-none focus:ring-2 focus:ring-purple-300"
                 >
                   <FiSend />
                 </button>

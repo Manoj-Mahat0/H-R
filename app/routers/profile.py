@@ -98,7 +98,7 @@ def update_full_profile(
 
 
 # ✅ Master Admin & Admin can view any user's profile by ID
-@router.get("/all", response_model=List[MeOut], dependencies=[Depends(require_roles(Role.MASTER, Role.ADMIN))])
+@router.get("/all", response_model=List[MeOut], dependencies=[Depends(require_roles(Role.MASTER, Role.ADMIN, Role.STAFF, Role.ACCOUNTANT, Role.VENDOR))])
 def get_all_profiles(session: Session = Depends(get_session)):
     users = session.query(User).all()
     return users

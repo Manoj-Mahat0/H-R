@@ -29,6 +29,8 @@ export default function Login() {
         return "/staff/dashboard";
       case "driver":
         return "/driver/dashboard";
+      case "security":
+        return "/security/dashboard";
       default:
         return "/dashboard";
     }
@@ -79,35 +81,35 @@ export default function Login() {
 
   return (
     <>
-      <div className="min-h-[80vh] flex items-center justify-center py-12 bg-gray-50">
+      <div className="min-h-[80vh] flex items-center justify-center py-12 bg-gray-50 dark:bg-gray-900 transition-colors">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
             {/* Left: Form */}
             <div className="w-full max-w-md mx-auto">
-              <div className="bg-white rounded-2xl p-8 shadow-lg">
-                <h2 className="text-3xl font-bold text-gray-800">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg">
+                <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-100">
                   Welcome back 👋
                 </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  Sign in to continue to{" "}
-                  <span className="font-medium">Sri Gopal Traders</span>
+                <p className="text-sm text-gray-500 dark:text-gray-300 mt-1">
+                  Sign in to continue to {" "}
+                  <span className="font-medium text-gray-800 dark:text-gray-100">Sri Gopal Traders</span>
                 </p>
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-5">
                   {err && (
-                    <div className="text-sm text-red-700 bg-red-50 p-3 rounded-md border border-red-200">
+                    <div className="text-sm text-red-700 bg-red-50 dark:bg-red-900/30 dark:text-red-300 p-3 rounded-md border border-red-200 dark:border-red-700">
                       {err}
                     </div>
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Email
                     </label>
                     <input
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       type="email"
                       placeholder="you@example.com"
                       autoComplete="email"
@@ -115,13 +117,13 @@ export default function Login() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Password
                     </label>
                     <input
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                      className="mt-1 w-full px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                       type="password"
                       placeholder="••••••••"
                       autoComplete="current-password"
@@ -138,11 +140,11 @@ export default function Login() {
                   </button>
                 </form>
 
-                <div className="mt-5 text-sm text-gray-600 text-center">
-                  Don’t have an account?{" "}
+                <div className="mt-5 text-sm text-gray-600 dark:text-gray-300 text-center">
+                  Don’t have an account? {" "}
                   <Link
                     to="/signup"
-                    className="text-blue-600 font-medium hover:underline"
+                    className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
                   >
                     Create an account
                   </Link>
@@ -152,12 +154,12 @@ export default function Login() {
 
             {/* Right: Illustration */}
             <div className="hidden md:flex items-center justify-center">
-                <img
-              src={fingerprint}
-                  alt="Login Illustration"
-                  className="max-w-xs w-full object-contain drop-shadow-xl"
-                  style={{ minHeight: 320 }}
-                />
+              <img
+                src={fingerprint}
+                alt="Login Illustration"
+                className="max-w-xs w-full object-contain drop-shadow-xl"
+                style={{ minHeight: 320 }}
+              />
             </div>
           </div>
         </div>

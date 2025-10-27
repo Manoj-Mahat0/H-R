@@ -58,6 +58,30 @@ export default function DriverDashboard() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [data, setData] = useState(null); // driver dashboard response or demo
 
+  // initialize theme from localStorage (darkMode: "class" in tailwind.config)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark") document.documentElement.classList.add("dark");
+      else document.documentElement.classList.remove("dark");
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  function toggleTheme() {
+    try {
+      const next = !document.documentElement.classList.contains("dark");
+      if (next) {
+        document.documentElement.classList.add("dark");
+        localStorage.setItem("theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        localStorage.setItem("theme", "light");
+      }
+    } catch (e) {}
+  }
+
   useEffect(() => {
     mounted.current = true;
     const controller = new AbortController();
@@ -132,73 +156,77 @@ export default function DriverDashboard() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-slate-900 transition-colors duration-200">
       <DriverSidebar />
 
       <main className="flex-1 p-6 md:p-8">
         <div className="flex items-start justify-between mb-6 gap-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Driver Dashboard</h1>
-            <p className="text-sm text-gray-600 mt-1">Overview of your deliveries, earnings and activity.</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Driver Dashboard</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">Overview of your deliveries, earnings and activity.</p>
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={() => setRefreshKey((k) => k + 1)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border hover:bg-gray-50">
+            <button onClick={() => setRefreshKey((k) => k + 1)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100">
               <FiRefreshCw className="w-4 h-4" /> Refresh
             </button>
 
-            <button onClick={exportDeliveries} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border hover:bg-gray-50">
+            <button onClick={exportDeliveries} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100">
               <FiDownload className="w-4 h-4" /> Export CSV
+            </button>
+
+            <button onClick={toggleTheme} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-700 text-gray-800 dark:text-gray-100">
+              Theme
             </button>
           </div>
         </div>
 
         {/* KPI cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl border p-4 shadow-sm">
-            <div className="text-xs text-gray-500">Today's deliveries</div>
-            <div className="text-2xl font-semibold text-gray-900 mt-2">{fmtNumber(kpis.today_deliveries)}</div>
-            <div className="text-xs text-gray-400 mt-1">Assigned for today</div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
+            <div className="text-xs text-gray-500 dark:text-gray-300">Today's deliveries</div>
+            <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-2">{fmtNumber(kpis.today_deliveries)}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-400 mt-1">Assigned for today</div>
           </div>
 
-          <div className="bg-white rounded-xl border p-4 shadow-sm">
-            <div className="text-xs text-gray-500">Completed</div>
-            <div className="text-2xl font-semibold text-gray-900 mt-2">{fmtNumber(kpis.completed)}</div>
-            <div className="text-xs text-gray-400 mt-1">Delivered today</div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
+            <div className="text-xs text-gray-500 dark:text-gray-300">Completed</div>
+            <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-2">{fmtNumber(kpis.completed)}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-400 mt-1">Delivered today</div>
           </div>
 
-          <div className="bg-white rounded-xl border p-4 shadow-sm">
-            <div className="text-xs text-gray-500">Pending</div>
-            <div className="text-2xl font-semibold text-gray-900 mt-2">{fmtNumber(kpis.pending)}</div>
-            <div className="text-xs text-gray-400 mt-1">Yet to deliver</div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
+            <div className="text-xs text-gray-500 dark:text-gray-300">Pending</div>
+            <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-2">{fmtNumber(kpis.pending)}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-400 mt-1">Yet to deliver</div>
           </div>
 
-          <div className="bg-white rounded-xl border p-4 shadow-sm">
-            <div className="text-xs text-gray-500">Earnings (today)</div>
-            <div className="text-2xl font-semibold text-gray-900 mt-2">{fmtCurrency(kpis.earnings_today)}</div>
-            <div className="text-xs text-gray-400 mt-1">Collected / earned</div>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
+            <div className="text-xs text-gray-500 dark:text-gray-300">Earnings (today)</div>
+            <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mt-2">{fmtCurrency(kpis.earnings_today)}</div>
+            <div className="text-xs text-gray-400 dark:text-gray-400 mt-1">Collected / earned</div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* deliveries table */}
-          <div className="lg:col-span-2 bg-white rounded-xl border p-4 shadow-sm">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-medium">Today's deliveries</h3>
-              <div className="text-xs text-gray-500">{deliveries.length} items</div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Today's deliveries</h3>
+              <div className="text-xs text-gray-500 dark:text-gray-300">{deliveries.length} items</div>
             </div>
 
             {loading ? (
               <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-12 bg-gray-50 rounded animate-pulse" />)}
+                {Array.from({ length: 4 }).map((_, i) => <div key={i} className="h-12 bg-gray-50 dark:bg-slate-700 rounded animate-pulse" />)}
               </div>
             ) : deliveries.length === 0 ? (
-              <div className="text-sm text-gray-500 py-8 text-center">No deliveries found.</div>
+              <div className="text-sm text-gray-500 dark:text-gray-300 py-8 text-center">No deliveries found.</div>
             ) : (
               <div className="overflow-auto">
                 <table className="min-w-full table-auto">
                   <thead>
-                    <tr className="text-xs text-gray-500">
+                    <tr className="text-xs text-gray-500 dark:text-gray-300">
                       <th className="px-3 py-2 text-left">Order</th>
                       <th className="px-3 py-2 text-left">Customer</th>
                       <th className="px-3 py-2 text-left">Address</th>
@@ -207,19 +235,21 @@ export default function DriverDashboard() {
                       <th className="px-3 py-2 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="text-sm divide-y">
+                  <tbody className="text-sm divide-y divide-gray-100 dark:divide-slate-700">
                     {deliveries.map((d) => (
-                      <tr key={d.id} className="hover:bg-gray-50">
-                        <td className="px-3 py-3 font-medium">#{d.order_id}</td>
-                        <td className="px-3 py-3">{d.customer}</td>
-                        <td className="px-3 py-3">{d.address}</td>
-                        <td className="px-3 py-3">{d.eta ? d.eta : fmtDateShort(d.updated_at)}</td>
-                        <td className="px-3 py-3 text-right">₹{d.amount ?? "-"}</td>
+                      <tr key={d.id} className="hover:bg-gray-50 dark:hover:bg-slate-700">
+                        <td className="px-3 py-3 font-medium text-gray-900 dark:text-gray-100">#{d.order_id}</td>
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-200">{d.customer}</td>
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-200">{d.address}</td>
+                        <td className="px-3 py-3 text-gray-700 dark:text-gray-200">{d.eta ? d.eta : fmtDateShort(d.updated_at)}</td>
+                        <td className="px-3 py-3 text-right text-gray-900 dark:text-gray-100">₹{d.amount ?? "-"}</td>
                         <td className="px-3 py-3 text-center">
                           <span className={`px-2 py-1 text-xs rounded-full ${
-                            d.status === "delivered" ? "bg-green-50 text-green-700" :
-                            d.status === "on_the_way" ? "bg-yellow-100 text-yellow-800" :
-                            "bg-gray-50 text-gray-700"
+                            d.status === "delivered"
+                              ? "bg-green-50 text-green-700 dark:bg-green-800/20 dark:text-green-300"
+                              : d.status === "on_the_way"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-800/20 dark:text-yellow-300"
+                                : "bg-gray-50 text-gray-700 dark:bg-slate-700 dark:text-gray-300"
                           }`}>{d.status}</span>
                         </td>
                       </tr>
@@ -231,23 +261,23 @@ export default function DriverDashboard() {
           </div>
 
           {/* right column: map + activity */}
-          <div className="bg-white rounded-xl border p-4 shadow-sm">
-            <h3 className="text-lg font-medium mb-3">Live location</h3>
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-700 p-4 shadow-sm transition-colors">
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-100">Live location</h3>
 
-            <div className="w-full h-48 rounded border mb-3 bg-gray-100 flex items-center justify-center text-gray-500">
+            <div className="w-full h-48 rounded border mb-3 bg-gray-100 dark:bg-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-300">
               <div className="flex flex-col items-center gap-2">
                 <FiMapPin className="w-7 h-7 text-indigo-600" />
                 <div className="text-sm">{location ? `Lat ${location.lat}, Lng ${location.lng}` : "Location not available"}</div>
-                <div className="text-xs text-gray-400">Map integration placeholder — integrate Leaflet / Google Maps here</div>
+                <div className="text-xs text-gray-400 dark:text-gray-400">Map integration placeholder — integrate Leaflet / Google Maps here</div>
               </div>
             </div>
 
-            <h4 className="text-sm font-medium mb-2">Recent activity</h4>
-            <div className="space-y-2 text-sm text-gray-700">
-              {activity.length === 0 ? <div className="text-xs text-gray-400">No recent activity.</div> : activity.map((a) => (
-                <div key={a.id} className="p-2 rounded border bg-white">
-                  <div className="text-xs text-gray-500">{fmtDateShort(a.ts)}</div>
-                  <div className="mt-1">{a.text}</div>
+            <h4 className="text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">Recent activity</h4>
+            <div className="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+              {activity.length === 0 ? <div className="text-xs text-gray-400 dark:text-gray-400">No recent activity.</div> : activity.map((a) => (
+                <div key={a.id} className="p-2 rounded border bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{fmtDateShort(a.ts)}</div>
+                  <div className="mt-1 text-gray-800 dark:text-gray-200">{a.text}</div>
                 </div>
               ))}
             </div>

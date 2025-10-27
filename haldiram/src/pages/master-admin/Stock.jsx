@@ -15,7 +15,9 @@ import {
   FiList,
 } from "react-icons/fi";
 
-const API_UPLOADS = "http://127.0.0.1:8000";
+import { API_HOST } from '../../lib/config.js';
+
+const API_UPLOADS = API_HOST;
 
 function fmtNumber(v) {
   if (v == null || v === "") return "-";
@@ -397,323 +399,333 @@ export default function MasterAdminStock() {
     };
   }, [refreshKey]);
 
-  return (
-    <div className="min-h-screen flex bg-gray-50">
-      <MasterAdminSidebar />
+ return (
+  <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
+    <MasterAdminSidebar />
 
-      <main className="flex-1 p-6 md:p-8">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-indigo-50 p-3 rounded-lg">
-              <FiBox className="w-6 h-6 text-indigo-600" />
+    <main className="flex-1 p-6 md:p-8">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="bg-indigo-50 dark:bg-indigo-900/20 p-3 rounded-lg">
+            <FiBox className="w-6 h-6 text-indigo-600 dark:text-indigo-300" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              Stock management
+            </h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+              Manage stock quantities (Adjust / Correct) and batches
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Search box */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiSearch className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+            </div>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search product, category or tag..."
+              className="pl-9 pr-8 py-2 w-64 rounded-lg border bg-white dark:bg-gray-800 text-sm placeholder-gray-400 dark:placeholder-gray-500 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-indigo-400"
+              aria-label="Search products"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Clear search"
+                type="button"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="text-sm text-gray-500 text-right dark:text-gray-300">
+            <div>
+              Products: <span className="font-medium text-gray-900 dark:text-gray-100">{totals.count}</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Stock management
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                Manage stock quantities (Adjust / Correct) and batches
-              </p>
+              Total stock: <span className="font-medium text-gray-900 dark:text-gray-100">{fmtNumber(totals.totalStock)}</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* Search box */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="w-4 h-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search product, category or tag..."
-                className="pl-9 pr-8 py-2 w-64 rounded-lg border bg-white text-sm placeholder-gray-400"
-                aria-label="Search products"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded text-gray-500 hover:bg-gray-100"
-                  title="Clear search"
-                  type="button"
-                >
-                  <FiX className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            <div className="text-sm text-gray-500 text-right">
-              <div>
-                Products: <span className="font-medium text-gray-900">{totals.count}</span>
-              </div>
-              <div>
-                Total stock: <span className="font-medium text-gray-900">{fmtNumber(totals.totalStock)}</span>
-              </div>
-            </div>
-
-            <div className="text-sm text-gray-600 flex gap-2">
-              <div className="px-2 py-1 rounded bg-red-50 text-red-700 text-xs">Under: {statusCounts.under}</div>
-              <div className="px-2 py-1 rounded bg-green-50 text-green-700 text-xs">OK: {statusCounts.ok}</div>
-              <div className="px-2 py-1 rounded bg-yellow-50 text-yellow-800 text-xs">Over: {statusCounts.over}</div>
-            </div>
-
-            <button onClick={() => setRefreshKey((k) => k + 1)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm hover:bg-gray-50">
-              <FiRefreshCw className="w-4 h-4" /> Refresh
-            </button>
+          <div className="text-sm text-gray-600 dark:text-gray-300 flex gap-2">
+            <div className="px-2 py-1 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-xs">Under: {statusCounts.under}</div>
+            <div className="px-2 py-1 rounded bg-green-50 dark:bg-emerald-900/10 text-green-700 dark:text-emerald-300 text-xs">OK: {statusCounts.ok}</div>
+            <div className="px-2 py-1 rounded bg-yellow-50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-300 text-xs">Over: {statusCounts.over}</div>
           </div>
+
+          <button onClick={() => setRefreshKey((k) => k + 1)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+            <FiRefreshCw className="w-4 h-4 text-gray-700 dark:text-gray-200" /> Refresh
+          </button>
         </div>
+      </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          {loading ? (
-            <div className="p-6 space-y-4">
-              {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-20 rounded-md bg-gray-50 animate-pulse" />)}
-            </div>
-          ) : (
-            <div className="overflow-auto">
-              <table className="min-w-full table-auto">
-                <thead className="bg-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Product</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Category</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Tags</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Price</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Stock</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Min / Max</th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500">Status</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500">Actions</th>
-                  </tr>
-                </thead>
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden transition-colors">
+        {loading ? (
+          <div className="p-6 space-y-4">
+            {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-20 rounded-md bg-gray-50 dark:bg-gray-700 animate-pulse" />)}
+          </div>
+        ) : (
+          <div className="overflow-auto">
+            <table className="min-w-full table-auto">
+              <thead className="bg-white dark:bg-gray-800">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Product</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Category</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Tags</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Price</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300">Stock</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300">Min / Max</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300">Status</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300">Actions</th>
+                </tr>
+              </thead>
 
-                <tbody className="bg-white divide-y divide-gray-100">
-                  {filteredProducts.length === 0 ? (
-                    <tr><td colSpan="8" className="px-6 py-8 text-center text-sm text-gray-500">No products found.</td></tr>
-                  ) : (
-                    filteredProducts.map(p => {
-                      const qty = Number(stockMap[p.id] || 0);
-
-                      const min = p?.min_quantity ?? p?.min_stock ?? p?.reorder_min ?? null;
-                      const max = p?.max_quantity ?? p?.max_stock ?? p?.reorder_max ?? null;
-                      let statusLabel = "OK";
-                      if (min != null && qty < Number(min)) statusLabel = "UNDER";
-                      else if (max != null && qty > Number(max)) statusLabel = "OVER";
-
-                      const tags = normaliseTags(p); // TAGS array
-
-                      let pillClass = "bg-green-50 text-green-700";
-                      if (statusLabel === "UNDER") pillClass = "bg-red-50 text-red-700";
-                      else if (statusLabel === "OVER") pillClass = "bg-yellow-50 text-yellow-800";
-
-                      return (
-                        <tr key={p.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 rounded-md bg-gray-100 overflow-hidden flex items-center justify-center border">
-                                {p.image_url ? <img src={`${API_UPLOADS}${p.image_url}`} alt={p.name} className="h-full w-full object-cover" /> : <div className="text-xs text-gray-400">No image</div>}
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900">{p.name}</div>
-                                <div className="text-xs text-gray-500">{p.sku || `#${p.id}`}</div>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-gray-600">{p.category || "-"}</td>
-
-                          {/* TAGS column - show small badges if tags exist */}
-                          <td className="px-4 py-4">
-                            {tags.length === 0 ? <div className="text-xs text-gray-400">-</div> : (
-                              <div className="flex flex-wrap gap-1">
-                                {tags.slice(0, 6).map((t, i) => (
-                                  <div key={i} className="text-xs px-2 py-0.5 rounded bg-gray-100 border text-gray-700">{t}</div>
-                                ))}
-                                {tags.length > 6 && <div className="text-xs px-2 py-0.5 rounded bg-gray-100 border text-gray-500">+{tags.length - 6}</div>}
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="px-4 py-4 text-sm text-gray-900">₹{fmtNumber(p.price)}</td>
-                          <td className="px-4 py-4 text-center text-sm text-gray-700">{fmtNumber(qty)}</td>
-
-                          <td className="px-4 py-4 text-center text-sm text-gray-600">
-                            {min == null && max == null ? "-" : (
-                              <div className="text-xs">
-                                <div>Min: {min == null ? "-" : fmtNumber(min)}</div>
-                                <div>Max: {max == null ? "-" : fmtNumber(max)}</div>
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="px-4 py-4 text-center">
-                            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${pillClass}`}>
-                              <span className="capitalize">{statusLabel}</span>
-                            </div>
-                          </td>
-
-                          <td className="px-4 py-4 text-right">
-                            <div className="inline-flex items-center gap-2">
-                              <button onClick={() => openBatchesModal(p)} title="View batches" className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white border text-sm hover:bg-gray-50">
-                                <FiList className="w-4 h-4" /> Batches
-                              </button>
-                              <button onClick={() => openStockModal(p, "adjust")} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-yellow-50 text-yellow-800 text-sm hover:bg-yellow-100"><FiRepeat className="w-4 h-4" /></button>
-                              <button onClick={() => openStockModal(p, "correct")} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-green-50 text-green-700 text-sm hover:bg-green-100"><FiCheckCircle className="w-4 h-4" /></button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Adjust/Correct Modal */}
-      {stockModal.open && stockModal.product && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-          <div className="absolute inset-0 bg-black/30" onClick={closeStockModal} />
-          <form onSubmit={stockModal.mode === "adjust" ? doAdjust : doCorrect} className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-10">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">{stockModal.mode === "adjust" ? "Adjust stock" : "Correct stock"}</h3>
-                <div className="text-xs text-gray-500 mt-1">{stockModal.product.name} • SKU: {stockModal.product.sku || `#${stockModal.product.id}`}</div>
-              </div>
-              <button type="button" onClick={closeStockModal} className="text-gray-500">Close</button>
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <label className="block text-sm text-gray-700">
-                {stockModal.mode === "adjust" ? "Quantity to add/remove (use negative to reduce)" : "Set quantity to (absolute)"}
-              </label>
-              <input type="number" value={stockModal.qty} onChange={(e) => setStockModal(s => ({ ...s, qty: e.target.value }))} className="w-full px-3 py-2 rounded border" />
-              <div className="text-xs text-gray-500">Current quantity: <span className="font-medium">{fmtNumber(stockMap[stockModal.product.id])}</span></div>
-            </div>
-
-            <div className="mt-6 flex justify-end gap-3">
-              <button type="button" onClick={closeStockModal} className="px-4 py-2 rounded border">Cancel</button>
-              <button type="submit" disabled={stockBusy} className="px-4 py-2 rounded bg-green-600 text-white">
-                {stockBusy ? (stockModal.mode === "adjust" ? "Adjusting..." : "Correcting...") : (stockModal.mode === "adjust" ? "Adjust" : "Correct")}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Batches Modal */}
-      {batchesModal.open && batchesModal.product && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16">
-          <div className="absolute inset-0 bg-black/30" onClick={closeBatchesModal} />
-          <div className="relative bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 z-10">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-semibold">Batches — {batchesModal.product.name}</h3>
-                <div className="text-xs text-gray-500 mt-1">Product ID: {batchesModal.product.id} • Current stock: {fmtNumber(stockMap[batchesModal.product.id])}</div>
-              </div>
-              <button type="button" onClick={closeBatchesModal} className="text-gray-500">Close</button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* create batch */}
-              <form onSubmit={createBatchForProduct} className="space-y-3 border rounded p-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-sm font-medium">Create new batch</div>
-                  <div className="text-xs text-gray-400">POST /api/stock/</div>
-                </div>
-
-                {/* Batch no is auto-generated but editable if you want to change it */}
-                <input
-                  type="text"
-                  placeholder="Batch no (auto-generated)"
-                  value={newBatch.batch_no}
-                  onChange={(e) => setNewBatch((s) => ({ ...s, batch_no: e.target.value }))}
-                  className="w-full px-3 py-2 rounded border"
-                />
-
-                <input
-                  type="number"
-                  placeholder="Quantity"
-                  value={newBatch.quantity}
-                  onChange={(e) => setNewBatch((s) => ({ ...s, quantity: e.target.value }))}
-                  className="w-full px-3 py-2 rounded border"
-                />
-
-                {/* unit is fixed to pcs and disabled */}
-                <input
-                  type="text"
-                  placeholder="Unit"
-                  value={"pcs"}
-                  disabled
-                  className="w-full px-3 py-2 rounded border bg-gray-50 text-gray-600"
-                />
-
-                <input
-                  type="date"
-                  placeholder="Expiry date"
-                  value={newBatch.expire_date}
-                  onChange={(e) => setNewBatch((s) => ({ ...s, expire_date: e.target.value }))}
-                  className="w-full px-3 py-2 rounded border"
-                />
-
-                {/* notes hidden from UI; kept default "ok" */}
-                <div className="text-xs text-gray-400">Notes are hidden and default to "ok".</div>
-
-                <div className="flex justify-end gap-2">
-                  <button type="button" onClick={() => setNewBatch({ batch_no: generateBatchNoForProduct(batchesModal.product), quantity: "", unit: "pcs", expire_date: "", notes: "ok" })} className="px-3 py-1 rounded border text-sm">Reset</button>
-                  <button type="submit" disabled={creatingBatch} className="px-3 py-1 rounded bg-indigo-600 text-white text-sm">
-                    {creatingBatch ? "Creating..." : <><FiPlus className="inline mr-2" /> Create</>}
-                  </button>
-                </div>
-              </form>
-
-              {/* batches list */}
-              <div className="border rounded p-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-sm font-medium">Active batches</div>
-                  <div className="text-xs text-gray-400">GET /api/stock/?product_id=..&only_active=true</div>
-                </div>
-
-                {batchesModal.loading ? (
-                  <div className="space-y-2">
-                    <div className="h-6 bg-gray-50 animate-pulse rounded" />
-                    <div className="h-6 bg-gray-50 animate-pulse rounded" />
-                  </div>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+                {filteredProducts.length === 0 ? (
+                  <tr><td colSpan="8" className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">No products found.</td></tr>
                 ) : (
-                  <div className="space-y-3 max-h-64 overflow-auto">
-                    {batchesModal.list.length === 0 ? (
-                      <div className="text-xs text-gray-400">No active batches.</div>
-                    ) : (
-                      batchesModal.list.map((b) => (
-                        <div key={b.id} className="flex items-start justify-between gap-3 bg-gray-50 p-2 rounded">
-                          <div className="text-sm">
-                            <div className="font-medium">{b.batch_no || `#${b.id}`}</div>
-                            <div className="text-xs text-gray-600">Qty: {fmtNumber(b.quantity)} {b.unit || ""}</div>
-                            <div className="text-xs text-gray-500">{b.expire_date ? new Date(b.expire_date).toLocaleDateString() : "-"}</div>
-                            {/* notes intentionally not shown */}
+                  filteredProducts.map(p => {
+                    const qty = Number(stockMap[p.id] || 0);
+
+                    const min = p?.min_quantity ?? p?.min_stock ?? p?.reorder_min ?? null;
+                    const max = p?.max_quantity ?? p?.max_stock ?? p?.reorder_max ?? null;
+                    let statusLabel = "OK";
+                    if (min != null && qty < Number(min)) statusLabel = "UNDER";
+                    else if (max != null && qty > Number(max)) statusLabel = "OVER";
+
+                    const tags = normaliseTags(p); // TAGS array
+
+                    let pillClass = "bg-green-50 text-green-700 dark:bg-emerald-900/10 dark:text-emerald-300";
+                    if (statusLabel === "UNDER") pillClass = "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300";
+                    else if (statusLabel === "OVER") pillClass = "bg-yellow-50 text-yellow-800 dark:bg-yellow-900/10 dark:text-yellow-300";
+
+                    // make initials placeholder from name (since images removed)
+                    const initials = (p.name || "").trim().slice(0, 1).toUpperCase() || "-";
+
+                    return (
+                      <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-3">
+                            {/* placeholder instead of image */}
+                            <div className="h-12 w-12 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center border dark:border-gray-600 text-gray-600 dark:text-gray-200 font-medium">
+                              {initials}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900 dark:text-gray-100">{p.name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{p.sku || `#${p.id}`}</div>
+                            </div>
                           </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="text-xs text-gray-400">Added: {b.added_at ? new Date(b.added_at).toLocaleString() : "-"}</div>
-                            <button onClick={() => deactivateBatch(b.id)} className="inline-flex items-center gap-2 px-2 py-1 rounded border text-sm hover:bg-red-50">
-                              <FiTrash2 className="w-4 h-4 text-red-600" /> Deactivate
+                        </td>
+
+                        <td className="px-4 py-4 text-sm text-gray-600 dark:text-gray-300">{p.category || "-"}</td>
+
+                        {/* TAGS column - show small badges if tags exist */}
+                        <td className="px-4 py-4">
+                          {tags.length === 0 ? <div className="text-xs text-gray-400 dark:text-gray-500">-</div> : (
+                            <div className="flex flex-wrap gap-1">
+                              {tags.slice(0, 6).map((t, i) => (
+                                <div key={i} className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-gray-700 dark:text-gray-200">
+                                  {t}
+                                </div>
+                              ))}
+                              {tags.length > 6 && <div className="text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 border dark:border-gray-600 text-gray-500 dark:text-gray-400">+{tags.length - 6}</div>}
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-4 text-sm text-gray-900 dark:text-gray-100">₹{fmtNumber(p.price)}</td>
+                        <td className="px-4 py-4 text-center text-sm text-gray-700 dark:text-gray-200">{fmtNumber(qty)}</td>
+
+                        <td className="px-4 py-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                          {min == null && max == null ? "-" : (
+                            <div className="text-xs">
+                              <div>Min: {min == null ? "-" : fmtNumber(min)}</div>
+                              <div>Max: {max == null ? "-" : fmtNumber(max)}</div>
+                            </div>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-4 text-center">
+                          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium ${pillClass}`}>
+                            <span className="capitalize">{statusLabel}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4 text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <button onClick={() => openBatchesModal(p)} title="View batches" className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+                              <FiList className="w-4 h-4 text-gray-700 dark:text-gray-200" /> Batches
+                            </button>
+                            <button onClick={() => openStockModal(p, "adjust")} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-yellow-50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-300 text-sm hover:bg-yellow-100 dark:hover:bg-yellow-800/20">
+                              <FiRepeat className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => openStockModal(p, "correct")} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-green-50 dark:bg-emerald-900/10 text-green-700 dark:text-emerald-300 text-sm hover:bg-green-100 dark:hover:bg-emerald-800/20">
+                              <FiCheckCircle className="w-4 h-4" />
                             </button>
                           </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
-              </div>
-            </div>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </main>
 
-            <div className="mt-4 flex justify-end">
-              <button onClick={closeBatchesModal} className="px-4 py-2 rounded border">Done</button>
+    {/* Adjust/Correct Modal */}
+    {stockModal.open && stockModal.product && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="absolute inset-0 bg-black/30" onClick={closeStockModal} />
+        <form onSubmit={stockModal.mode === "adjust" ? doAdjust : doCorrect} className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 z-10 transition-colors">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{stockModal.mode === "adjust" ? "Adjust stock" : "Correct stock"}</h3>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{stockModal.product.name} • SKU: {stockModal.product.sku || `#${stockModal.product.id}`}</div>
+            </div>
+            <button type="button" onClick={closeStockModal} className="text-gray-500 dark:text-gray-300">Close</button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            <label className="block text-sm text-gray-700 dark:text-gray-300">
+              {stockModal.mode === "adjust" ? "Quantity to add/remove (use negative to reduce)" : "Set quantity to (absolute)"}
+            </label>
+            <input type="number" value={stockModal.qty} onChange={(e) => setStockModal(s => ({ ...s, qty: e.target.value }))} className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100" />
+            <div className="text-xs text-gray-500 dark:text-gray-400">Current quantity: <span className="font-medium">{fmtNumber(stockMap[stockModal.product.id])}</span></div>
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button type="button" onClick={closeStockModal} className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">Cancel</button>
+            <button type="submit" disabled={stockBusy} className="px-4 py-2 rounded bg-green-600 text-white">
+              {stockBusy ? (stockModal.mode === "adjust" ? "Adjusting..." : "Correcting...") : (stockModal.mode === "adjust" ? "Adjust" : "Correct")}
+            </button>
+          </div>
+        </form>
+      </div>
+    )}
+
+    {/* Batches Modal */}
+    {batchesModal.open && batchesModal.product && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16">
+        <div className="absolute inset-0 bg-black/30" onClick={closeBatchesModal} />
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl p-6 z-10 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Batches — {batchesModal.product.name}</h3>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Product ID: {batchesModal.product.id} • Current stock: {fmtNumber(stockMap[batchesModal.product.id])}</div>
+            </div>
+            <button type="button" onClick={closeBatchesModal} className="text-gray-500 dark:text-gray-300">Close</button>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* create batch */}
+            <form onSubmit={createBatchForProduct} className="space-y-3 border rounded p-3 bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Create new batch</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">POST /api/stock/</div>
+              </div>
+
+              <input
+                type="text"
+                placeholder="Batch no (auto-generated)"
+                value={newBatch.batch_no}
+                onChange={(e) => setNewBatch((s) => ({ ...s, batch_no: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+              />
+
+              <input
+                type="number"
+                placeholder="Quantity"
+                value={newBatch.quantity}
+                onChange={(e) => setNewBatch((s) => ({ ...s, quantity: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+              />
+
+              {/* unit is fixed to pcs and disabled */}
+              <input
+                type="text"
+                placeholder="Unit"
+                value={"pcs"}
+                disabled
+                className="w-full px-3 py-2 rounded border bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300"
+              />
+
+              <input
+                type="date"
+                placeholder="Expiry date"
+                value={newBatch.expire_date}
+                onChange={(e) => setNewBatch((s) => ({ ...s, expire_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+              />
+
+              <div className="text-xs text-gray-400 dark:text-gray-500">Notes are hidden and default to "ok".</div>
+
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setNewBatch({ batch_no: generateBatchNoForProduct(batchesModal.product), quantity: "", unit: "pcs", expire_date: "", notes: "ok" })} className="px-3 py-1 rounded border text-sm bg-white dark:bg-gray-900">Reset</button>
+                <button type="submit" disabled={creatingBatch} className="px-3 py-1 rounded bg-indigo-600 text-white text-sm">
+                  {creatingBatch ? "Creating..." : <><FiPlus className="inline mr-2" /> Create</>}
+                </button>
+              </div>
+            </form>
+
+            {/* batches list */}
+            <div className="border rounded p-3 bg-white dark:bg-gray-900 border-gray-100 dark:border-gray-700">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">Active batches</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">GET /api/stock/?product_id=..&only_active=true</div>
+              </div>
+
+              {batchesModal.loading ? (
+                <div className="space-y-2">
+                  <div className="h-6 bg-gray-50 dark:bg-gray-700 animate-pulse rounded" />
+                  <div className="h-6 bg-gray-50 dark:bg-gray-700 animate-pulse rounded" />
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-64 overflow-auto">
+                  {batchesModal.list.length === 0 ? (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">No active batches.</div>
+                  ) : (
+                    batchesModal.list.map((b) => (
+                      <div key={b.id} className="flex items-start justify-between gap-3 bg-gray-50 dark:bg-gray-800 p-2 rounded border border-gray-100 dark:border-gray-700">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          <div className="font-medium">{b.batch_no || `#${b.id}`}</div>
+                          <div className="text-xs text-gray-600 dark:text-gray-300">Qty: {fmtNumber(b.quantity)} {b.unit || ""}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{b.expire_date ? new Date(b.expire_date).toLocaleDateString() : "-"}</div>
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          <div className="text-xs text-gray-400 dark:text-gray-500">Added: {b.added_at ? new Date(b.added_at).toLocaleString() : "-"}</div>
+                          <button onClick={() => deactivateBatch(b.id)} className="inline-flex items-center gap-2 px-2 py-1 rounded border text-sm hover:bg-red-50 dark:hover:bg-red-800/20">
+                            <FiTrash2 className="w-4 h-4 text-red-600" /> Deactivate
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </div>
           </div>
+
+          <div className="mt-4 flex justify-end">
+            <button onClick={closeBatchesModal} className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">Done</button>
+          </div>
         </div>
-      )}
-    </div>
-  );
+      </div>
+    )}
+  </div>
+);
+
+
+
 }

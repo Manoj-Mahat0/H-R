@@ -192,93 +192,99 @@ export default function MasterAdminVehicles() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <MasterAdminSidebar />
+  <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
+    <MasterAdminSidebar />
 
-      <main className="flex-1 p-6 md:p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-900">Vehicles</h1>
-            <p className="text-sm text-gray-500">Manage vehicles — add, edit, activate/deactivate or delete.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setFetchKey((k) => k + 1)}
-              className="px-3 py-2 rounded border bg-white hover:bg-gray-50 text-sm"
-            >
-              Refresh
-            </button>
-
-            
-          </div>
+    <main className="flex-1 p-6 md:p-8">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Vehicles</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Manage vehicles — add, edit, activate/deactivate or delete.
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-auto">
-          {loading ? (
-            <div className="p-6 space-y-3">
-              <div className="h-6 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 bg-gray-100 rounded animate-pulse" />
-            </div>
-          ) : (
-            <table className="min-w-full">
-              <thead className="bg-white">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setFetchKey((k) => k + 1)}
+            className="px-3 py-2 rounded border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-auto transition-colors">
+        {loading ? (
+          <div className="p-6 space-y-3">
+            <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        ) : (
+          <table className="min-w-full">
+            <thead className="bg-white dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Vehicle</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Driver mobile</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Capacity</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Location (lat,lng)</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Active</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300">Created</th>
+              </tr>
+            </thead>
+
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+              {vehicles.length === 0 ? (
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Vehicle</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Driver mobile</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Capacity</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Location (lat,lng)</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Active</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500">Created</th>
+                  <td colSpan="7" className="px-6 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No vehicles yet.
+                  </td>
                 </tr>
-              </thead>
+              ) : vehicles.map((v) => (
+                <tr
+                  key={v.id}
+                  className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <td className="px-4 py-4">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{v.vehicle_number}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {v.id} • {v.details || "-"}</div>
+                  </td>
 
-              <tbody className="bg-white divide-y divide-gray-100">
-                {vehicles.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="px-6 py-8 text-center text-sm text-gray-500">No vehicles yet.</td>
-                  </tr>
-                ) : vehicles.map((v) => (
-                  <tr key={v.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-4">
-                      <div className="font-medium">{v.vehicle_number}</div>
-                      <div className="text-xs text-gray-500">ID: {v.id} • {v.details || "-"}</div>
-                    </td>
+                  <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">{v.driver_mobile}</td>
 
-                    <td className="px-4 py-4 text-sm text-gray-700">{v.driver_mobile}</td>
+                  <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+                    {v.capacity_weight ? `${v.capacity_weight} ${v.capacity_unit || "kg"}` : "-"}
+                  </td>
 
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      {v.capacity_weight ? `${v.capacity_weight} ${v.capacity_unit || "kg"}` : "-"}
-                    </td>
+                  <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+                    {typeof v.lat !== "undefined" && v.lat !== null ? `${v.lat}, ${v.lng}` : "-"}
+                  </td>
 
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      {typeof v.lat !== "undefined" && v.lat !== null ? `${v.lat}, ${v.lng}` : "-"}
-                    </td>
+                  <td className="px-4 py-4 text-sm text-gray-700 dark:text-gray-200">
+                    <button
+                      onClick={() => handleToggleActive(v)}
+                      className="inline-flex items-center gap-2 px-2 py-1 rounded text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      title={v.active ? "Deactivate" : "Activate"}
+                    >
+                      {v.active ? (
+                        <FiToggleRight className="w-5 h-5 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <FiToggleLeft className="w-5 h-5 text-gray-400 dark:text-gray-400" />
+                      )}
+                      <span className="text-xs text-gray-700 dark:text-gray-200">{v.active ? "Active" : "Inactive"}</span>
+                    </button>
+                  </td>
 
-                    <td className="px-4 py-4 text-sm text-gray-700">
-                      <button
-                        onClick={() => handleToggleActive(v)}
-                        className="inline-flex items-center gap-2 px-2 py-1 rounded text-sm border"
-                        title={v.active ? "Deactivate" : "Activate"}
-                      >
-                        {v.active ? <FiToggleRight className="w-5 h-5 text-green-600" /> : <FiToggleLeft className="w-5 h-5 text-gray-400" />}
-                        <span className="text-xs">{v.active ? "Active" : "Inactive"}</span>
-                      </button>
-                    </td>
+                  <td className="px-4 py-4 text-sm text-gray-500 dark:text-gray-400">{fmtDate(v.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </main>
+  </div>
+);
 
-                    <td className="px-4 py-4 text-sm text-gray-500">{fmtDate(v.created_at)}</td>
-
-                    
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </main>
-
-      
-    </div>
-  );
 }

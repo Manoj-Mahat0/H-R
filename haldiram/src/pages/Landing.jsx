@@ -141,101 +141,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* PRODUCT RANGE (dynamic, auto slider) */}
-      <section className="bg-gray-50 py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-extrabold">Our Product Range</h2>
-          <p className="mt-3 text-gray-500 max-w-2xl mx-auto">
-            Discover the complete range of authentic Haldiram products including namkeen, sweets, papad, and ready-to-eat meals.
-          </p>
-
-          <div className="mt-10 relative">
-            {/* slider viewport */}
-            <div className="overflow-hidden">
-              {/* track */}
-              <div
-                className="flex transition-transform duration-700 ease-in-out"
-                style={{
-                  width: `${(products.length || 1) * slideWidthPercent}%`,
-                  transform: `translateX(${translateX}%)`,
-                }}
-              >
-                {/* render product cards sized by slide width */}
-                {products.map((p) => {
-                  // full image URL - API_HOST + image_url (image_url may already begin with '/')
-                  const src = p.image_url ? `${API_HOST}${p.image_url}` : null;
-                  return (
-                    <article
-                      key={p.id}
-                      className="bg-white rounded-2xl shadow-md overflow-hidden m-3 flex-shrink-0"
-                      style={{ width: `${slideWidthPercent}%`, maxWidth: `${100 / itemsPerSlide}%` }}
-                    >
-                      <div className="h-44 bg-[#07107a] flex items-center justify-center">
-                        {src ? (
-                          // try to keep image covering area
-                          // use simple <img> tag; if broken, fallback happens (alt)
-                          <img
-                            src={src}
-                            alt={p.name}
-                            className="object-contain h-40"
-                            onError={(e) => {
-                              e.currentTarget.onerror = null;
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="text-white">
-                            <IconBox />
-                          </div>
-                        )}
-                      </div>
-                      <div className="p-6 text-left">
-                        <div className="text-sm text-[#07107a] font-semibold">{p.category}</div>
-                        <h3 className="mt-2 text-lg font-semibold text-gray-900">{p.name}</h3>
-                        <p className="mt-2 text-sm text-gray-500">{p.description}</p>
-                        <div className="mt-3 flex items-center justify-between">
-                          <div className="font-semibold text-gray-900">₹{p.price}</div>
-                          <div className="text-sm text-gray-500">{p.weight}g</div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-                {/* if no products, render some placeholders */}
-                {products.length === 0 && !loadingProducts && (
-                  <div className="p-8 w-full">
-                    <div className="text-gray-500">No products found.</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* controls (small dots) */}
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {Array.from({ length: Math.max(1, Math.ceil((products.length || 1) / Math.max(1, itemsPerSlide))) }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSlideIndex(i)}
-                  className={`w-2 h-2 rounded-full ${i === slideIndex ? "bg-[#07107a]" : "bg-gray-300"}`}
-                  aria-label={`Go to slide ${i + 1}`}
-                />
-              ))}
-            </div>
-
-            {/* loading / error */}
-            {loadingProducts && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-white/80 px-4 py-2 rounded-md text-sm">Loading products…</div>
-              </div>
-            )}
-            {prodError && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="bg-red-50 border border-red-200 px-4 py-2 rounded-md text-sm text-red-700">{prodError}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+      
 
       {/* WHY CHOOSE US */}
       <section className="py-16">
@@ -319,7 +225,7 @@ export default function Landing() {
             ].map((t) => (
               <div key={t.name} className="bg-white rounded-xl p-6 shadow-sm text-left">
                 <div className="text-yellow-400 mb-3">★★★★★</div>
-                <p className="text-gray-700">“{t.quote}”</p>
+                <p className="text-gray-700">"{t.quote}"</p>
                 <div className="mt-4 font-semibold text-gray-900">{t.name}</div>
                 <div className="text-sm text-gray-500">{t.role}</div>
               </div>
@@ -358,10 +264,6 @@ export default function Landing() {
                 <div className="mt-2 text-sm">123 Food Street, Market Area<br/>City, State - 123456</div>
               </div>
             </div>
-          </div>
-
-          <div className="mt-10">
-            <Link to="/contact" className="inline-block bg-white text-[#07107a] px-6 py-3 rounded-full font-semibold">Send Message</Link>
           </div>
         </div>
       </section>
