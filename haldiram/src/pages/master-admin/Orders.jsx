@@ -5,7 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/Toast";
 import { useNavigate } from "react-router-dom";
 import { API_BASE, API_HOST } from "../../lib/config";
-import { FiUser, FiShoppingCart, FiPackage, FiSearch } from "react-icons/fi";
+import { authFetch } from "../../lib/auth";
+import { FiUser, FiShoppingCart, FiPackage, FiSearch, FiTrash2, FiX, FiFilter } from "react-icons/fi";
 
 function StatusBadge({ status }) {
   const map = {
@@ -17,6 +18,7 @@ function StatusBadge({ status }) {
     payment_checked: "bg-green-200 text-green-800",
     cancelled: "bg-red-100 text-red-700",
     returned: "bg-red-200 text-red-800",
+    deleted: "bg-red-100 text-red-700",
   };
 
   return (
@@ -34,6 +36,10 @@ export default function StaffOrders() {
   const [orders, setOrders] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingOrderId, setDeletingOrderId] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [activeTab, setActiveTab] = useState("active"); // "active" or "deleted"
 
   // small helper to normalise API urls (avoids double /api issues)
   async function apiRequest(path) {
@@ -159,6 +165,75 @@ export default function StaffOrders() {
     return null;
   }
 
+  // Filter orders based on active tab
+  const filteredOrders = useMemo(() => {
+    if (activeTab === "active") {
+      return orders.filter(order => order.status !== "deleted");
+    } else {
+      return orders.filter(order => order.status === "deleted");
+    }
+  }, [orders, activeTab]);
+
+  // Open delete confirmation modal
+  function openDeleteModal(order) {
+    setOrderToDelete(order);
+    setDeleteModalOpen(true);
+  }
+
+  // Close delete confirmation modal
+  function closeDeleteModal() {
+    setDeleteModalOpen(false);
+    setOrderToDelete(null);
+  }
+
+  // Delete an order by changing its status to "deleted"
+  async function deleteOrder() {
+    if (!orderToDelete) return;
+    
+    const orderId = orderToDelete.id;
+    setDeletingOrderId(orderId);
+    closeDeleteModal();
+    
+    try {
+      // First, get the current order details
+      const order = await apiRequest(`/new-orders/${orderId}`);
+      
+      // Prepare the payload with the updated status
+      const payload = {
+        items: order.items.map(item => ({
+          product_id: item.product_id,
+          qty: item.qty,
+          unit_price: item.unit_price,
+          notes: item.notes || ""
+        })),
+        shipping_address: order.shipping_address,
+        notes: order.notes,
+        status: "deleted"
+      };
+      
+      // Update the order status to "deleted"
+      await authFetch(`/new-orders/${orderId}`, {
+        method: "PUT",
+        body: JSON.stringify(payload)
+      });
+      
+      // Update the local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId 
+            ? { ...order, status: "deleted" }
+            : order
+        )
+      );
+      
+      toast("Order status changed to deleted", "success");
+    } catch (err) {
+      toast(err.message || "Failed to delete order", "error");
+    } finally {
+      setDeletingOrderId(null);
+    }
+  }
+
   // debug logging — remove or comment out in production
   useEffect(() => {
     if (orders && orders.length) {
@@ -176,15 +251,51 @@ export default function StaffOrders() {
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-900 transition-colors">
       <StaffSidebar />
       <main className="flex-1 p-6 md:p-8">
-        <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">Unassigned Master Orders</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Unassigned Master Orders</h1>
+          
+          {/* Tab Navigation */}
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
+            <button
+              onClick={() => setActiveTab("active")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "active"
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              Active Orders
+            </button>
+            <button
+              onClick={() => setActiveTab("deleted")}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                activeTab === "deleted"
+                  ? "bg-indigo-600 text-white"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              }`}
+            >
+              Deleted Orders
+            </button>
+          </div>
+        </div>
 
         {loading ? (
           <p className="text-gray-500 dark:text-gray-400">Loading orders...</p>
-        ) : orders.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No orders found.</p>
+        ) : filteredOrders.length === 0 ? (
+          <div className="text-center py-12">
+            <FiFilter className="w-12 h-12 mx-auto text-gray-400 dark:text-gray-500" />
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-gray-100">
+              {activeTab === "active" ? "No active orders" : "No deleted orders"}
+            </h3>
+            <p className="mt-1 text-gray-500 dark:text-gray-400">
+              {activeTab === "active" 
+                ? "There are currently no active orders to display." 
+                : "There are currently no deleted orders to display."}
+            </p>
+          </div>
         ) : (
           <div className="grid gap-4">
-            {orders.map((o) => {
+            {filteredOrders.map((o) => {
               const customer = resolveCustomer(o);
               const vendor = resolveVendor(o);
 
@@ -203,8 +314,8 @@ export default function StaffOrders() {
               return (
                 <div
                   key={o.id}
-                  onClick={() => navigate(`/master-admin/orders/movement/${o.vendor_id}?order=${o.id}`)}
-                  className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer hover:shadow-md transition-colors"
+                  className="p-4 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={activeTab === "active" ? () => navigate(`/master-admin/orders/movement/${o.vendor_id}?order=${o.id}`) : undefined}
                 >
                   <div className="flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Order #{o.id}</h2>
@@ -224,10 +335,97 @@ export default function StaffOrders() {
                     Created: {o.created_at ? new Date(o.created_at).toLocaleString() : "-"}
                   </div>
 
-                  <div className="font-semibold mt-2 text-gray-900 dark:text-gray-100">₹{o.total_amount ?? o.total ?? 0}</div>
+                  <div className="flex justify-between items-center mt-2">
+                    <div className="font-semibold text-gray-900 dark:text-gray-100">₹{o.total_amount ?? o.total ?? 0}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-300">
+                      {o.items?.length || 0} items
+                    </div>
+                  </div>
+
+                  {activeTab === "active" && (
+                    <div className="flex justify-end mt-4">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevent navigation to detail page
+                          openDeleteModal(o);
+                        }}
+                        disabled={deletingOrderId === o.id || o.status === "deleted"}
+                        className={`flex items-center gap-2 px-3 py-1 rounded-md text-sm ${
+                          o.status === "deleted"
+                            ? "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                            : "bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/30"
+                        }`}
+                      >
+                        {deletingOrderId === o.id ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-red-700 border-t-transparent rounded-full animate-spin"></div>
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            <FiTrash2 className="w-4 h-4" />
+                            Delete Order
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteModalOpen && orderToDelete && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="absolute inset-0 bg-black/30" onClick={closeDeleteModal} />
+            <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 z-10 transition-colors">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Confirm Delete Order</h3>
+                <button 
+                  type="button" 
+                  onClick={closeDeleteModal}
+                  className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100"
+                >
+                  <FiX className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-gray-700 dark:text-gray-300">
+                  Are you sure you want to delete this order? This will change the order status to 'deleted'.
+                </p>
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Order ID: <span className="font-medium text-gray-900 dark:text-gray-100">#{orderToDelete.id}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Current Status: <span className="font-medium text-gray-900 dark:text-gray-100">{orderToDelete.status}</span>
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Total Amount: <span className="font-medium text-gray-900 dark:text-gray-100">₹{orderToDelete.total_amount ?? orderToDelete.total ?? 0}</span>
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button 
+                  type="button" 
+                  onClick={closeDeleteModal}
+                  className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button" 
+                  onClick={deleteOrder}
+                  className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700"
+                >
+                  Delete Order
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </main>

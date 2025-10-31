@@ -94,12 +94,33 @@ export default function MasterAdminStock() {
     loading: false,
   });
 
+  // Add Batch modal state
+  const [addBatchModal, setAddBatchModal] = useState({
+    open: false,
+    product: null,
+  });
+
+  // Delete Batch modal state
+  const [deleteBatchModal, setDeleteBatchModal] = useState({
+    open: false,
+    product: null,
+    list: [],
+    loading: false,
+  });
+
+  // State for delete confirmation
+  const [deleteConfirmation, setDeleteConfirmation] = useState({
+    open: false,
+    batchId: null,
+    batchInfo: null,
+  });
+
   // create batch form state
   const [creatingBatch, setCreatingBatch] = useState(false);
   const [newBatch, setNewBatch] = useState({
     batch_no: "",
     quantity: "",
-    unit: "pcs",
+    unit: "box",
     expire_date: "",
     notes: "ok",
   });
@@ -296,7 +317,7 @@ export default function MasterAdminStock() {
       setNewBatch({
         batch_no: defaultBatchNo,
         quantity: "",
-        unit: "pcs",
+        unit: "box",
         expire_date: "",
         notes: "ok", // default hidden note value
       });
@@ -309,36 +330,81 @@ export default function MasterAdminStock() {
     }
   }
 
+  // Open Add Batch modal
+  function openAddBatchModal(product) {
+    // Set up the new batch with default values
+    const defaultBatchNo = generateBatchNoForProduct(product);
+    setNewBatch({
+      batch_no: defaultBatchNo,
+      quantity: "",
+      unit: "box",
+      expire_date: "",
+      notes: "ok",
+    });
+    setAddBatchModal({ open: true, product });
+  }
+
+  // Open Delete Batch modal
+  async function openDeleteBatchModal(product) {
+    setDeleteBatchModal((s) => ({ ...s, open: true, product, loading: true, list: [] }));
+
+    try {
+      // fetch batches for this product (only_active true)
+      const res = await authFetch(`/stock/?product_id=${product.id}&only_active=true`, {
+        method: "GET",
+      });
+      const list = Array.isArray(res) ? res : [];
+      setDeleteBatchModal({ open: true, product, loading: false, list });
+    } catch (err) {
+      toast(err?.message || "Failed to load batches", "error");
+      setDeleteBatchModal({ open: true, product, loading: false, list: [] });
+    }
+  }
+
   function closeBatchesModal() {
     setBatchesModal({ open: false, product: null, loading: false, list: [] });
     // reset new batch form
-    setNewBatch({ batch_no: "", quantity: "", unit: "pcs", expire_date: "", notes: "ok" });
+    setNewBatch({ batch_no: "", quantity: "", unit: "box", expire_date: "", notes: "ok" });
+  }
+
+  // Close Add Batch modal
+  function closeAddBatchModal() {
+    setAddBatchModal({ open: false, product: null });
+    // reset new batch form
+    setNewBatch({ batch_no: "", quantity: "", unit: "box", expire_date: "", notes: "ok" });
+  }
+
+  // Close Delete Batch modal
+  function closeDeleteBatchModal() {
+    setDeleteBatchModal({ open: false, product: null, loading: false, list: [] });
   }
 
   async function createBatchForProduct(e) {
     e?.preventDefault();
-    if (!batchesModal.product) return;
+    // Check which modal is open and use the appropriate product
+    const product = batchesModal.product || addBatchModal.product;
+    if (!product) return;
 
     // compute or ensure a batch_no
-    const batchNo = newBatch.batch_no && String(newBatch.batch_no).trim() ? String(newBatch.batch_no).trim() : generateBatchNoForProduct(batchesModal.product);
+    const batchNo = newBatch.batch_no && String(newBatch.batch_no).trim() ? String(newBatch.batch_no).trim() : generateBatchNoForProduct(product);
 
     // fetch current list to make sure batch_no won't clash with an active batch
-    const existingResp = await authFetch(`/stock/?product_id=${batchesModal.product.id}&only_active=true`, { method: "GET" });
+    const existingResp = await authFetch(`/stock/?product_id=${product.id}&only_active=true`, { method: "GET" });
     const existingList = Array.isArray(existingResp) ? existingResp : [];
     const clash = existingList.find((b) => (b.batch_no || "").toLowerCase() === batchNo.toLowerCase());
     if (clash) {
       toast("A batch with the generated batch_no already exists for this product. Generating a new suffix.", "warning");
       // regenerate batchNo with a new suffix and set it (but continue; user can re-submit)
-      const newBatchNo = `${slugifyName(batchesModal.product.name)}-${yyyymmdd()}-${randSuffix(4)}`;
+      const newBatchNo = `${slugifyName(product.name)}-${yyyymmdd()}-${randSuffix(4)}`;
       setNewBatch((s) => ({ ...s, batch_no: newBatchNo }));
       return;
     }
 
     const payload = {
-      product_id: batchesModal.product.id,
+      product_id: product.id,
       batch_no: batchNo,
       quantity: Number(newBatch.quantity || 0),
-      unit: "pcs", // unit fixed to pcs
+      unit: "box", // unit fixed to box
       expire_date: newBatch.expire_date ? new Date(newBatch.expire_date).toISOString() : new Date().toISOString(),
       notes: "ok", // note hidden + default ok
     };
@@ -358,8 +424,15 @@ export default function MasterAdminStock() {
       toast("Batch created", "success");
       // refresh global batches and modal list
       setRefreshKey((k) => k + 1);
-      setBatchesModal((s) => ({ ...s, list: [...s.list, res] }));
-      setNewBatch({ batch_no: generateBatchNoForProduct(batchesModal.product), quantity: "", unit: "pcs", expire_date: "", notes: "ok" });
+      // Update the appropriate modal list if it's open
+      if (batchesModal.open) {
+        setBatchesModal((s) => ({ ...s, list: [...s.list, res] }));
+      }
+      // Close the appropriate modal after successful creation
+      if (addBatchModal.open) {
+        setAddBatchModal({ open: false, product: null });
+      }
+      setNewBatch({ batch_no: generateBatchNoForProduct(product), quantity: "", unit: "box", expire_date: "", notes: "ok" });
     } catch (err) {
       toast(err?.message || "Failed to create batch", "error");
     } finally {
@@ -367,19 +440,46 @@ export default function MasterAdminStock() {
     }
   }
 
-  async function deactivateBatch(batchId) {
-    if (!window.confirm("Deactivate this batch?")) return;
+  // Open delete confirmation modal
+  function openDeleteConfirmation(batchId, batchInfo) {
+    setDeleteConfirmation({ open: true, batchId, batchInfo });
+  }
+
+  // Close delete confirmation modal
+  function closeDeleteConfirmation() {
+    setDeleteConfirmation({ open: false, batchId: null, batchInfo: null });
+  }
+
+  // Actually perform the batch deletion
+  async function performDeleteBatch(batchId) {
     try {
       await authFetch(`/stock/${batchId}`, {
         method: "DELETE",
       });
-      toast("Batch deactivated", "success");
+      toast("Batch Deleted", "success");
       // refresh global batches and modal list
       setRefreshKey((k) => k + 1);
-      setBatchesModal((s) => ({ ...s, list: s.list.filter((b) => b.id !== batchId) }));
+      // Update the appropriate modal list if it's open
+      if (batchesModal.open) {
+        setBatchesModal((s) => ({ ...s, list: s.list.filter((b) => b.id !== batchId) }));
+      }
+      if (deleteBatchModal.open) {
+        setDeleteBatchModal((s) => ({ ...s, list: s.list.filter((b) => b.id !== batchId) }));
+      }
+      // Close delete modal if it's open and empty
+      if (deleteBatchModal.open && deleteBatchModal.list.length <= 1) {
+        setDeleteBatchModal({ open: false, product: null, loading: false, list: [] });
+      }
     } catch (err) {
-      toast(err?.message || "Failed to deactivate batch", "error");
+      toast(err?.message || "Failed to Delete batch", "error");
+    } finally {
+      closeDeleteConfirmation();
     }
+  }
+
+  async function DeleteBatch(batchId, batchInfo) {
+    // Open the confirmation modal instead of using window.confirm
+    openDeleteConfirmation(batchId, batchInfo);
   }
 
   // Keep a background effect to update global batches when refreshKey changes
@@ -562,8 +662,22 @@ export default function MasterAdminStock() {
 
                         <td className="px-4 py-4 text-right">
                           <div className="inline-flex items-center gap-2">
-                            <button onClick={() => openBatchesModal(p)} title="View batches" className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
-                              <FiList className="w-4 h-4 text-gray-700 dark:text-gray-200" /> Batches
+                            
+                            {/* Add icon-only button for adding batches */}
+                            <button 
+                              onClick={() => openAddBatchModal(p)} 
+                              title="Add batch" 
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                              <FiPlus className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            </button>
+                            {/* Delete icon-only button for deleting batches */}
+                            <button 
+                              onClick={() => openDeleteBatchModal(p)} 
+                              title="Delete batch" 
+                              className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                            >
+                              <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                             </button>
                             <button onClick={() => openStockModal(p, "adjust")} className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-yellow-50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-300 text-sm hover:bg-yellow-100 dark:hover:bg-yellow-800/20">
                               <FiRepeat className="w-4 h-4" />
@@ -652,11 +766,11 @@ export default function MasterAdminStock() {
                 className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
               />
 
-              {/* unit is fixed to pcs and disabled */}
+              {/* unit is fixed to box and disabled */}
               <input
                 type="text"
                 placeholder="Unit"
-                value={"pcs"}
+                value={"box"}
                 disabled
                 className="w-full px-3 py-2 rounded border bg-gray-50 dark:bg-gray-900 text-gray-600 dark:text-gray-300"
               />
@@ -672,7 +786,19 @@ export default function MasterAdminStock() {
               <div className="text-xs text-gray-400 dark:text-gray-500">Notes are hidden and default to "ok".</div>
 
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setNewBatch({ batch_no: generateBatchNoForProduct(batchesModal.product), quantity: "", unit: "pcs", expire_date: "", notes: "ok" })} className="px-3 py-1 rounded border text-sm bg-white dark:bg-gray-900">Reset</button>
+                <button type="button" onClick={() => {
+                  // Use the appropriate product based on which modal is open
+                  const product = batchesModal.product || addBatchModal.product;
+                  if (product) {
+                    setNewBatch({ 
+                      batch_no: generateBatchNoForProduct(product), 
+                      quantity: "", 
+                      unit: "box", 
+                      expire_date: "", 
+                      notes: "ok" 
+                    });
+                  }
+                }} className="px-3 py-1 rounded border text-sm bg-white dark:bg-gray-900">Reset</button>
                 <button type="submit" disabled={creatingBatch} className="px-3 py-1 rounded bg-indigo-600 text-white text-sm">
                   {creatingBatch ? "Creating..." : <><FiPlus className="inline mr-2" /> Create</>}
                 </button>
@@ -705,8 +831,8 @@ export default function MasterAdminStock() {
                         </div>
                         <div className="flex flex-col items-end gap-2">
                           <div className="text-xs text-gray-400 dark:text-gray-500">Added: {b.added_at ? new Date(b.added_at).toLocaleString() : "-"}</div>
-                          <button onClick={() => deactivateBatch(b.id)} className="inline-flex items-center gap-2 px-2 py-1 rounded border text-sm hover:bg-red-50 dark:hover:bg-red-800/20">
-                            <FiTrash2 className="w-4 h-4 text-red-600" /> Deactivate
+                          <button onClick={() => DeleteBatch(b.id)} className="inline-flex items-center gap-2 px-2 py-1 rounded border text-sm hover:bg-red-50 dark:hover:bg-red-800/20">
+                            <FiTrash2 className="w-4 h-4 text-red-600" /> Delete
                           </button>
                         </div>
                       </div>
@@ -719,6 +845,166 @@ export default function MasterAdminStock() {
 
           <div className="mt-4 flex justify-end">
             <button onClick={closeBatchesModal} className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">Done</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Add Batch Modal */}
+    {addBatchModal.open && addBatchModal.product && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16">
+        <div className="absolute inset-0 bg-black/30" onClick={closeAddBatchModal} />
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 z-10 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Batch — {addBatchModal.product.name}</h3>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Product ID: {addBatchModal.product.id}</div>
+            </div>
+            <button type="button" onClick={closeAddBatchModal} className="text-gray-500 dark:text-gray-300">Close</button>
+          </div>
+
+          <form onSubmit={createBatchForProduct} className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Batch Number</label>
+              <input
+                type="text"
+                value={newBatch.batch_no}
+                onChange={(e) => setNewBatch((s) => ({ ...s, batch_no: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Quantity</label>
+              <input
+                type="number"
+                value={newBatch.quantity}
+                onChange={(e) => setNewBatch((s) => ({ ...s, quantity: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Expiry Date</label>
+              <input
+                type="date"
+                value={newBatch.expire_date}
+                onChange={(e) => setNewBatch((s) => ({ ...s, expire_date: e.target.value }))}
+                className="w-full px-3 py-2 rounded border bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button type="button" onClick={closeAddBatchModal} className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">
+                Cancel
+              </button>
+              <button type="submit" disabled={creatingBatch} className="px-4 py-2 rounded bg-green-600 text-white">
+                {creatingBatch ? "Adding..." : "Add Batch"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+
+    {/* Delete Batch Modal */}
+    {deleteBatchModal.open && deleteBatchModal.product && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16">
+        <div className="absolute inset-0 bg-black/30" onClick={closeDeleteBatchModal} />
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl p-6 z-10 transition-colors">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Delete Batch — {deleteBatchModal.product.name}</h3>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">Product ID: {deleteBatchModal.product.id}</div>
+            </div>
+            <button type="button" onClick={closeDeleteBatchModal} className="text-gray-500 dark:text-gray-300">Close</button>
+          </div>
+
+          <div className="mt-4">
+            <div className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+              Select a batch to delete:
+            </div>
+
+            {deleteBatchModal.loading ? (
+              <div className="space-y-2">
+                <div className="h-6 bg-gray-50 dark:bg-gray-700 animate-pulse rounded" />
+                <div className="h-6 bg-gray-50 dark:bg-gray-700 animate-pulse rounded" />
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-64 overflow-auto">
+                {deleteBatchModal.list.length === 0 ? (
+                  <div className="text-xs text-gray-400 dark:text-gray-500">No active batches available for deletion.</div>
+                ) : (
+                  deleteBatchModal.list.map((b) => (
+                    <div key={b.id} className="flex items-start justify-between gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-100 dark:border-gray-700">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        <div className="font-medium">{b.batch_no || `#${b.id}`}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-300">Qty: {fmtNumber(b.quantity)} {b.unit || ""}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{b.expire_date ? new Date(b.expire_date).toLocaleDateString() : "-"}</div>
+                      </div>
+                      <button 
+                        onClick={() => DeleteBatch(b.id, { batch_no: b.batch_no, quantity: b.quantity })} 
+                        className="inline-flex items-center justify-center w-8 h-8 rounded-md bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/30"
+                        title="Delete batch"
+                      >
+                        <FiTrash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <button onClick={closeDeleteBatchModal} className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100">Done</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Delete Confirmation Modal */}
+    {deleteConfirmation.open && (
+      <div className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-16">
+        <div className="absolute inset-0 bg-black/30" onClick={closeDeleteConfirmation} />
+        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6 z-10 transition-colors">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Confirm Delete</h3>
+            <button type="button" onClick={closeDeleteConfirmation} className="text-gray-500 dark:text-gray-300">Close</button>
+          </div>
+
+          <div className="mt-4">
+            <p className="text-gray-700 dark:text-gray-300">
+              Are you sure you want to Delete this batch?
+            </p>
+            {deleteConfirmation.batchInfo && (
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Batch: <span className="font-medium">{deleteConfirmation.batchInfo.batch_no || `#${deleteConfirmation.batchId}`}</span>
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Quantity: <span className="font-medium">{fmtNumber(deleteConfirmation.batchInfo.quantity)}</span>
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button 
+              type="button" 
+              onClick={closeDeleteConfirmation} 
+              className="px-4 py-2 rounded border bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-100"
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              onClick={() => performDeleteBatch(deleteConfirmation.batchId)} 
+              className="px-4 py-2 rounded bg-red-600 text-white"
+            >
+              Delete
+            </button>
           </div>
         </div>
       </div>

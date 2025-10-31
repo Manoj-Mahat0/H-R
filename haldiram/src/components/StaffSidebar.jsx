@@ -50,7 +50,7 @@ export default function StaffSidebar() {
 
   function handleLogout() {
     if (logout) logout();
-    navigate("/login");
+    navigate("/");
   }
 
   function toggleTheme() {

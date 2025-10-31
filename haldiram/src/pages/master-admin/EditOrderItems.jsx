@@ -5,6 +5,7 @@ import MasterAdminSidebar from "../../components/MasterAdminSidebar";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../components/Toast";
 import { API_BASE, API_HOST } from "../../lib/config";
+import { authFetch } from "../../lib/auth";
 import {
     FiSearch,
     FiX,
@@ -138,39 +139,44 @@ export default function AdminEditOrderItems() {
 
     // --- API helper ---
     async function apiRequest(path, opts = {}) {
-  const headers = { Accept: "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  const fetchOpts = { method: opts.method || "GET", headers };
-  if (opts.body != null) {
-    if (!(opts.body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-      fetchOpts.body = JSON.stringify(opts.body);
-    } else {
-      fetchOpts.body = opts.body;
+        // For GET requests that need authentication, use authFetch
+        if ((!opts.method || opts.method === "GET") && token) {
+            return await authFetch(path, opts);
+        }
+        
+        const headers = { Accept: "application/json" };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        const fetchOpts = { method: opts.method || "GET", headers };
+        if (opts.body != null) {
+            if (!(opts.body instanceof FormData)) {
+                headers["Content-Type"] = "application/json";
+                fetchOpts.body = JSON.stringify(opts.body);
+            } else {
+                fetchOpts.body = opts.body;
+            }
+        }
+
+        // normalize and build full URL
+        const base = `${API_HOST ?? ""}${API_BASE ?? ""}`.replace(/\/$/, "");
+        const suffix = String(path ?? "").replace(/^\//, "");
+        const url = `${base}/${suffix}`;
+        console.log("[apiRequest] ->", fetchOpts.method, url, { body: opts.body });
+
+        const res = await fetch(url, fetchOpts);
+
+        const text = await res.text();
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+
+        if (!res.ok) {
+            const msg = (data && (data.detail || data.message || data.error)) || (typeof data === "string" ? data : `Request failed: ${res.status}`);
+            const err = new Error(msg);
+            err.status = res.status;
+            err.raw = data;
+            throw err;
+        }
+        return data;
     }
-  }
-
-  // normalize and build full URL
-  const base = `${API_HOST ?? ""}${API_BASE ?? ""}`.replace(/\/$/, "");
-  const suffix = String(path ?? "").replace(/^\//, "");
-  const url = `${base}/${suffix}`;
-  console.log("[apiRequest] ->", fetchOpts.method, url, { body: opts.body });
-
-  const res = await fetch(url, fetchOpts);
-
-  const text = await res.text();
-  let data = null;
-  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
-
-  if (!res.ok) {
-    const msg = (data && (data.detail || data.message || data.error)) || (typeof data === "string" ? data : `Request failed: ${res.status}`);
-    const err = new Error(msg);
-    err.status = res.status;
-    err.raw = data;
-    throw err;
-  }
-  return data;
-}
 
     async function fetchBatches(productId) {
         if (batchesMap[productId]) return;
@@ -257,28 +263,24 @@ export default function AdminEditOrderItems() {
 
     // --- Fetch vehicles ---
     async function fetchVehicles() {
-const path = `/vehicles?available=true`; // or "/vehicles/?me_only=true" to match your backend
-console.log("[fetchVehicles] path:", path, "API_BASE:", API_BASE, "API_HOST:", API_HOST);
-const data = await apiRequest(path);  const url = `${API_BASE.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
-  console.log("[fetchVehicles] requesting:", url);
-
-  try {
-    const data = await apiRequest(path); // or apiRequest(url) depending on your wrapper
-    setVehicles(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("fetch vehicles error", err);
-    // handle 404 specifically (show empty set instead of crash)
-    if (err.response?.status === 404) {
-      setVehicles([]); // no vehicles found
-    } else {
-      // optional: set an error state to show a message in the UI
-      setVehicles([]);
-      setVehiclesError(err);
+        setLoadingVehicles(true);
+        try {
+            // Use the same endpoint as other vehicle components
+            const data = await apiRequest("/vehicles/?me_only=true");
+            setVehicles(Array.isArray(data) ? data : []);
+        } catch (err) {
+            console.error("fetch vehicles error", err);
+            // handle 404 specifically (show empty set instead of crash)
+            if (err.status === 404) {
+                setVehicles([]); // no vehicles found
+            } else {
+                // Show empty set on any error
+                setVehicles([]);
+            }
+        } finally {
+            setLoadingVehicles(false);
+        }
     }
-  } finally {
-    setLoadingVehicles(false);
-  }
-}
 
 
     // Load vehicles on mount
@@ -480,9 +482,9 @@ const data = await apiRequest(path);  const url = `${API_BASE.replace(/\/$/, "")
             const orderPayload = {
                 items: itemsPayload,
                 shipping_address: order.shipping_address ?? "",
-                // Hard-code notes and status per your request
-                notes: "ok",
-                status: "confirmed",
+                // Preserve existing status and notes instead of hardcoding
+                notes: order.notes ?? "ok",
+                status: order.status ?? "confirmed",
             };
 
             const res = await apiRequest(`/new-orders/${order.id}`, {
@@ -490,7 +492,7 @@ const data = await apiRequest(path);  const url = `${API_BASE.replace(/\/$/, "")
                 body: orderPayload,
             });
 
-            toast(`Order ${order.id} confirmed and updated`, "success");
+            toast(`Order ${order.id} updated successfully`, "success");
             // optionally refresh order or navigate back
             navigate(-1);
         } catch (err) {
@@ -1022,7 +1024,7 @@ if (!order) {
               ) : (
                 <>
                   <FiTruck className="w-4 h-4" />
-                  Confirm Order
+                  Update Order
                 </>
               )}
             </button>

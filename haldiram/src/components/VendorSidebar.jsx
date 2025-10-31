@@ -91,7 +91,7 @@ export default function VendorSidebar() {
     } catch (err) {
       try { localStorage.removeItem("token"); } catch {}
     } finally {
-      try { navigate("/login"); } catch {}
+      try { navigate("/"); } catch {}
     }
   }
 

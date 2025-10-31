@@ -17,6 +17,9 @@ import {
   FiShoppingBag,
   FiTruck,
   FiChevronRight,
+  FiTrash2,
+  FiPackage,
+  FiX, // Added for closing drawer
 } from "react-icons/fi";
 
 /**
@@ -71,7 +74,7 @@ export default function MasterAdminSidebar() {
       } catch {}
     } finally {
       try {
-        navigate("/login");
+        navigate("/");
       } catch {}
     }
   }
@@ -90,6 +93,8 @@ export default function MasterAdminSidebar() {
         icon: FiShoppingBag,
         children: [
           { to: "/master-admin/orders", label: "All orders", icon: FiList },
+          { to: "/master-admin/new-orders", label: "New orders", icon: FiList },
+          { to: "/master-admin/orders/deleted", label: "Deleted orders", icon: FiTrash2 },
           // { to: "/master-admin/orders/movement", label: "Movement", icon: FiList },
         ],
       },
@@ -309,6 +314,58 @@ function SidebarInner({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [expanded]);
 
+  // State for stock by product drawer
+  const [stockDrawerOpen, setStockDrawerOpen] = useState(false);
+  const [stockData, setStockData] = useState([]);
+  const [loadingStock, setLoadingStock] = useState(false);
+
+  // Fetch stock data by product
+  const fetchStockByProduct = async () => {
+    if (!stockDrawerOpen) return;
+    
+    setLoadingStock(true);
+    try {
+      // Fetch products first
+      const productsResponse = await authFetch("/api/v2/products/", { method: "GET" });
+      const products = Array.isArray(productsResponse) ? productsResponse : [];
+      
+      // Fetch stock data
+      const stockResponse = await authFetch("/api/v2/stock/", { method: "GET" });
+      const stockList = Array.isArray(stockResponse) ? stockResponse : [];
+      
+      // Group stock by product
+      const stockMap = {};
+      stockList.forEach(stock => {
+        if (!stockMap[stock.product_id]) {
+          stockMap[stock.product_id] = 0;
+        }
+        stockMap[stock.product_id] += stock.quantity;
+      });
+      
+      // Combine product info with stock quantities
+      const stockWithProducts = products.map(product => ({
+        ...product,
+        stock_quantity: stockMap[product.id] || 0
+      })).filter(product => product.stock_quantity > 0) // Only show products with stock
+      .sort((a, b) => b.stock_quantity - a.stock_quantity); // Sort by stock quantity descending
+      
+      setStockData(stockWithProducts);
+    } catch (error) {
+      console.error("Failed to fetch stock data:", error);
+    } finally {
+      setLoadingStock(false);
+    }
+  };
+
+  // Toggle stock drawer and fetch data when opening
+  const toggleStockDrawer = () => {
+    const newState = !stockDrawerOpen;
+    setStockDrawerOpen(newState);
+    if (newState) {
+      fetchStockByProduct();
+    }
+  };
+
   return (
     <div className="h-full flex flex-col text-gray-800 dark:text-gray-200" ref={containerRef}>
       {/* Header */}
@@ -433,6 +490,28 @@ function SidebarInner({
                 />
               </div>
             ))}
+            
+            {/* Stock by Product Link */}
+            <div data-side-focus="1" tabIndex={-1}>
+              <button
+                onClick={toggleStockDrawer}
+                className={`group flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full text-left ${
+                  stockDrawerOpen
+                    ? "bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 dark:from-indigo-900/30 dark:to-blue-900/30 dark:text-indigo-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                }`}
+                title={compact ? "Stock by Product" : undefined}
+              >
+                <div className={`flex items-center justify-center h-9 w-9 rounded-md ${
+                  stockDrawerOpen 
+                    ? "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300" 
+                    : "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 group-hover:bg-gray-200 dark:group-hover:bg-gray-700"
+                }`}>
+                  <FiPackage className="w-5 h-5" />
+                </div>
+                {!compact && <span className="truncate">Stock by Product</span>}
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -483,6 +562,14 @@ function SidebarInner({
           </div>
         )}
       </div>
+
+      {/* Stock by Product Drawer */}
+      <StockByProductDrawer 
+        isOpen={stockDrawerOpen} 
+        onClose={() => setStockDrawerOpen(false)} 
+        stockData={stockData} 
+        loading={loadingStock} 
+      />
     </div>
   );
 
@@ -593,6 +680,75 @@ function AnimatedSubmenu({ show, children }) {
       }}
     >
       {children}
+    </div>
+  );
+}
+
+// Stock Drawer Component
+function StockByProductDrawer({ isOpen, onClose, stockData, loading }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-y-0 right-0 w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl border-l border-gray-200 dark:border-gray-700 flex flex-col">
+        <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Stock by Product</h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <FiX className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4">
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 rounded-md bg-gray-100 dark:bg-gray-700 animate-pulse" />
+              ))}
+            </div>
+          ) : stockData.length === 0 ? (
+            <div className="text-center py-8">
+              <FiPackage className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-500 dark:text-gray-400">No stock data available</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stockData.map((product) => (
+                <div 
+                  key={product.id} 
+                  className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{product.product_name}</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{product.product_code}</p>
+                    </div>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
+                      {product.stock_quantity}
+                    </span>
+                  </div>
+                  <div className="mt-2 flex justify-between text-sm">
+                    <span className="text-gray-500 dark:text-gray-400">Plant: {product.plant_name}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Category: {product.main_category}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

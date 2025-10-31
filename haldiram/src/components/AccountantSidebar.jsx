@@ -47,7 +47,7 @@ export default function AccountantSidebar() {
   function handleLogout() {
     clearAuth();
     if (logout) logout();
-    navigate("/login");
+    navigate("/");
   }
 
   function toggleTheme() {

@@ -68,7 +68,7 @@ export default function DriverSidebar() {
     } catch (err) {
       try { localStorage.removeItem("token"); } catch {}
     } finally {
-      try { navigate("/login"); } catch {}
+      try { navigate("/"); } catch {}
     }
   }
 

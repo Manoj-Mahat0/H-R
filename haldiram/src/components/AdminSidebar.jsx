@@ -17,6 +17,7 @@ import {
   FiShoppingBag,
   FiTruck,
   FiChevronRight,
+  FiTrash2,
 } from "react-icons/fi";
 
 /**
@@ -71,7 +72,7 @@ export default function MasterAdminSidebar() {
       } catch {}
     } finally {
       try {
-        navigate("/login");
+        navigate("/");
       } catch {}
     }
   }
@@ -90,6 +91,7 @@ export default function MasterAdminSidebar() {
         icon: FiShoppingBag,
         children: [
           { to: "/admin/orders", label: "All orders", icon: FiList },
+          { to: "/admin/orders/deleted", label: "Deleted orders", icon: FiTrash2 },
           // { to: "/admin/orders/movement", label: "Movement", icon: FiList },
         ],
       },

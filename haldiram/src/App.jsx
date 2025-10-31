@@ -15,6 +15,7 @@ import FloatingChat from "./components/FloatingChat";
 import Dashboard from "./pages/Dashboard";
 import MasterAdminProducts from "./pages/master-admin/MasterAdminProducts";
 import MasterAdminOrders from "./pages/master-admin/Orders";
+import MasterAdminDeletedOrders from "./pages/master-admin/DeletedOrders";
 import MasterAdminCategories from "./pages/master-admin/Categories";
 import MasterAdminTags from "./pages/master-admin/Tags";
 import MasterAdminCustomers from "./pages/master-admin/Customers";
@@ -24,6 +25,7 @@ import AdminProducts from "./pages/admin/Products";
 import AdminCategories from "./pages/admin/Categories";
 import AdminTags from "./pages/admin/Tags";
 import AdminCustomers from "./pages/admin/Customers";
+import AdminDeletedOrders from "./pages/admin/DeletedOrders";
 import VendorDashboard from "./pages/vendor/Dashboard";
 import VendorOrders from "./pages/vendor/Orders";
 
@@ -64,11 +66,13 @@ import AdminAttendance from "./pages/admin/AdminAttendance";
 import AdminAttendanceDay from "./pages/admin/AdminAttendanceDay";
 import NotFound from "./pages/NotFound";
 
+import NewOrders from "./pages/master-admin/NewOrders";
+import NewProducts from "./pages/master-admin/NewProducts"
 export default function App() {
   const location = useLocation();
 
   // Sirf in pages pe navbar dikhana hai, baaki sab pe nahi
-  const showNavbarOn = ["/", "/login", "/signup"];
+  const showNavbarOn = [ "/login", "/signup"];
   const shouldShowNavbar = showNavbarOn.includes(location.pathname);
 
   return (
@@ -78,7 +82,6 @@ export default function App() {
       <FloatingAttendance />
       <FloatingChat />
       <Routes>
-        {/* ...existing routes... */}
         <Route path="/" element={<Landing />} />
         {/* <Route path="/products" element={<Products />} />
         <Route path="/about" element={<About />} /> */}
@@ -86,8 +89,10 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         {/* protected dashboard */}
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/master-admin/products" element={<ProtectedRoute><MasterAdminProducts /></ProtectedRoute>} />
+        <Route path="/master-admin/products" element={<ProtectedRoute><NewProducts /></ProtectedRoute>} />
         <Route path="/master-admin/orders" element={<ProtectedRoute><MasterAdminOrders /></ProtectedRoute>} />
+        <Route path="/master-admin/new-orders" element={<ProtectedRoute><NewOrders /></ProtectedRoute>} />
+        <Route path="/master-admin/orders/deleted" element={<ProtectedRoute><MasterAdminDeletedOrders /></ProtectedRoute>} />
         <Route path="/master-admin/categories" element={<ProtectedRoute><MasterAdminCategories /></ProtectedRoute>} />
         <Route path="/master-admin/tags" element={<ProtectedRoute><MasterAdminTags /></ProtectedRoute>} />
         <Route path="/master-admin/customers" element={<ProtectedRoute><MasterAdminCustomers /> </ProtectedRoute>} />
@@ -126,8 +131,9 @@ export default function App() {
         <Route path="/security/attendance/:day" element={<ProtectedRoute><SecurityAttendanceDay /> </ProtectedRoute>} />
         <Route path="/driver/profile" element={<ProtectedRoute><DriverProfile /> </ProtectedRoute>} />
         <Route path="/admin/stock" element={<ProtectedRoute><AdminStock /> </ProtectedRoute>} />
-        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrdersMovement /> </ProtectedRoute>} />
-        <Route path="/admin/orders/movement/:id" element={<ProtectedRoute><AdminOrdersMovementDetails /> </ProtectedRoute>} />
+        <Route path="/admin/orders" element={<ProtectedRoute><AdminOrdersMovement /></ProtectedRoute>} />
+        <Route path="/admin/orders/deleted" element={<ProtectedRoute><AdminDeletedOrders /></ProtectedRoute>} />
+        <Route path="/admin/orders/movement/:id" element={<ProtectedRoute><AdminOrdersMovementDetails /></ProtectedRoute>} />
         <Route path="/admin/orders/:id/edit-items" element={<ProtectedRoute><AdminEditOrderItems /> </ProtectedRoute>} />
         <Route path="/admin/vehicles" element={<ProtectedRoute><AdminVehicles /> </ProtectedRoute>} />
         <Route path="/admin/vehicles/add" element={<ProtectedRoute><AdminAddVehicles /> </ProtectedRoute>} />

@@ -21,7 +21,10 @@ export async function authFetch(path, opts = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
   headers["Content-Type"] = headers["Content-Type"] || "application/json";
 
-  const res = await fetch(`${API_URL}${path}`, { ...opts, headers });
+  const fullUrl = `${API_URL}${path}`;
+  console.log('authFetch request:', fullUrl, opts);
+
+  const res = await fetch(fullUrl, { ...opts, headers });
   const text = await res.text();
   let data;
   try {
